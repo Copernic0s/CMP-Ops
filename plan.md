@@ -108,6 +108,7 @@ For now, the safer route is a bot/worker with explicit selectors and retries.
 - confirm the CMP pages and selectors
 - confirm the data model
 - confirm how passwords will be stored
+- build the portfolio loader from Zoho `Client BY agent`
 
 ### Phase 2
 
@@ -144,4 +145,3 @@ For now, the safer route is a bot/worker with explicit selectors and retries.
 - only the companies in `Client BY agent` are processed
 - access data and card state stay separate from invoices
 - sync runs are auditable and recover from browser instability
-

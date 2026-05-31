@@ -28,3 +28,8 @@ First milestone:
 - write access and card status snapshots into a dedicated model
 - expose the data through a small Hermes API
 
+Current implementation:
+
+- portfolio loader module with workbook parsing
+- normalized company-key extraction
+- first boot path that loads the Zoho sheet and prints the company count
