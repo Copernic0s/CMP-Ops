@@ -281,6 +281,7 @@ const getVisibleButtonLabel = async (candidate) => {
 
 const findPaginationScope = async (page) => {
   const markers = [
+    page.getByText(/\b\d+-\d+ of \d+ items\b/i),
     page.getByText(/previous/i),
     page.getByText(/next/i),
     page.getByText(/go to:/i)
@@ -294,10 +295,13 @@ const findPaginationScope = async (page) => {
       if (!visible) continue;
 
       let current = candidate;
-      for (let depth = 0; depth < 4; depth += 1) {
+      for (let depth = 0; depth < 8; depth += 1) {
         current = current.locator('xpath=ancestor::*[1]');
         const text = String(await current.innerText().catch(() => '') || '').trim();
-        if (/(previous|next|go to:|\d+\s+next)/i.test(text)) {
+        if (/\b(previous|next|go to:)\b/i.test(text) && /\b\d+-\d+ of \d+ items\b/i.test(text)) {
+          return current;
+        }
+        if (/\b(previous|next|go to:)\b/i.test(text) && /\b\d+\s+\.\.\.\s+\d+\b/i.test(text)) {
           return current;
         }
       }
