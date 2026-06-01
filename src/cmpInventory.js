@@ -9,7 +9,7 @@ const DEFAULT_INVENTORY_TAB_NAMES = [
   'Cards list'
 ];
 
-const DEFAULT_SEARCH_TEXTS = ['Search', 'Search card', 'Search card number', 'Card number'];
+const DEFAULT_SEARCH_TEXTS = ['Search', 'Search...', 'Search card', 'Search card number', 'Card number'];
 const DEFAULT_NEXT_TEXTS = ['Next', '>', '›', 'Next >', 'Next ›'];
 const DEFAULT_INVENTORY_PATH = '/company-account-cards';
 const DEFAULT_PAGE_SIZE = 100;
@@ -86,6 +86,7 @@ const findSearchBox = async (page) => {
   return firstVisible([
     ...searchTexts.map((label) => page.getByRole('textbox', { name: label, exact: false })),
     ...searchTexts.map((label) => page.getByPlaceholder(label, { exact: false })),
+    page.locator('input[placeholder="Search..."]'),
     page.locator('input[type="search"]'),
     page.locator('input[type="text"]')
   ]);
@@ -223,8 +224,31 @@ const waitForInventoryTable = async (page, log) => {
   log(`table wait ended with ${headers.length} headers and ${rowCount} rows; body="${bodyText.slice(0, 120)}"`);
 };
 
+const waitForInventoryShell = async (page, log) => {
+  for (let attempt = 0; attempt < 30; attempt += 1) {
+    const headingVisible = await page
+      .getByRole('heading', { name: /company account cards list/i })
+      .isVisible()
+      .catch(() => false);
+    const searchVisible = await page
+      .locator('input[placeholder="Search..."]')
+      .isVisible()
+      .catch(() => false);
+    const tableReady = (await page.locator('table').count().catch(() => 0)) > 0;
+
+    if ((headingVisible || searchVisible) && tableReady) {
+      log('inventory shell is ready');
+      return;
+    }
+
+    await sleep(500);
+  }
+
+  log('inventory shell wait timed out, continuing carefully');
+};
+
 const findPaginationButton = async (page) => {
-  const buttons = await page.getByRole('button', { name: /^Next$/i }).all().catch(() => []);
+  const buttons = await page.getByRole('button', { name: /next/i }).all().catch(() => []);
   for (let index = buttons.length - 1; index >= 0; index -= 1) {
     const candidate = buttons[index];
     const visible = await candidate.isVisible().catch(() => false);
@@ -333,6 +357,7 @@ export const captureCardInventory = async (options = {}) => {
     await activePage.waitForLoadState('networkidle').catch(() => {});
   }
 
+  await waitForInventoryShell(activePage, log);
   const searchBox = await findSearchBox(activePage);
   if (searchBox) {
     log('search box found, clearing it');
