@@ -156,6 +156,22 @@ const gatherTableHeaders = async (page) => {
   return headerCells.map((value) => String(value || '').trim()).filter(Boolean);
 };
 
+const waitForInventoryTable = async (page, log) => {
+  for (let attempt = 0; attempt < 20; attempt += 1) {
+    const headers = await gatherTableHeaders(page);
+    const rowCount = await page.locator('table tbody tr').count().catch(() => 0);
+    if (headers.length > 0 && rowCount > 0) {
+      log(`table ready with ${headers.length} headers and ${rowCount} rows`);
+      return;
+    }
+    await sleep(500);
+  }
+
+  const headers = await gatherTableHeaders(page);
+  const rowCount = await page.locator('table tbody tr').count().catch(() => 0);
+  log(`table wait ended with ${headers.length} headers and ${rowCount} rows`);
+};
+
 const extractRowsFromPage = async (page, headers) => {
   const rows = await page.locator('tbody tr, [role="row"]').all().catch(() => []);
   const results = [];
@@ -258,6 +274,8 @@ export const captureCardInventory = async (options = {}) => {
   } else {
     log('search box not found, continuing with visible table');
   }
+
+  await waitForInventoryTable(activePage, log);
 
   const rows = [];
   const seen = new Set();
