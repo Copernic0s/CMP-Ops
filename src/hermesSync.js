@@ -9,6 +9,9 @@ import { captureOwnerAccessForCompany } from './cmpOwners.js';
 import { captureCardStatusForCompany } from './cmpCards.js';
 import { captureCardInventory, normalizeInventoryCompanyKey } from './cmpInventory.js';
 
+const buildCompanyKeySet = (portfolio) =>
+  new Set((portfolio?.companies || []).map((company) => String(company.companyKey || '').trim()).filter(Boolean));
+
 const toOwnerAccessRow = (company, snapshot) => ({
   company_key: company.companyKey,
   company_name: company.companyName,
@@ -189,22 +192,28 @@ export const runCardStatusSync = async ({
 
 export const runCardInventorySync = async ({
   supabase,
+  portfolio,
   baseUrl
 }) => {
   if (!supabase) {
     throw new Error('Supabase client is required for card inventory sync');
   }
+  if (!portfolio?.companies?.length) {
+    throw new Error('Portfolio is empty');
+  }
 
   const audit = await createSyncAuditRun(supabase, {
     runType: 'card_inventory_sync',
     metadata: {
-      source: 'company-account-cards-list'
+      source: 'company-account-cards-list',
+      portfolio_sheet: portfolio.sheetName
     }
   });
 
   try {
     const snapshot = await captureCardInventory({ baseUrl });
-    const rows = (snapshot.rows || []).map((row) => ({
+    const portfolioKeys = buildCompanyKeySet(portfolio);
+    const mappedRows = (snapshot.rows || []).map((row) => ({
       card_number: String(row.cardNumber || '').trim(),
       company_name: String(row.companyName || '').trim(),
       company_key: normalizeInventoryCompanyKey(row.companyName || ''),
@@ -226,6 +235,8 @@ export const runCardInventorySync = async ({
       updated_at: new Date().toISOString()
     })).filter((row) => row.card_number);
 
+    const rows = mappedRows.filter((row) => portfolioKeys.has(String(row.company_key || '').trim()));
+
     await upsertCardInventoryRows(supabase, rows);
 
     await finishSyncAuditRun(supabase, audit.id, {
@@ -233,6 +244,9 @@ export const runCardInventorySync = async ({
       recordsUpdated: rows.length,
       metadata: {
         source: 'company-account-cards-list',
+        portfolio_sheet: portfolio.sheetName,
+        discovered_rows: mappedRows.length,
+        matched_rows: rows.length,
         finished: true
       }
     });
@@ -240,6 +254,8 @@ export const runCardInventorySync = async ({
     return {
       auditId: audit.id,
       totalRecords: rows.length,
+      discoveredRecords: mappedRows.length,
+      matchedRecords: rows.length,
       results: rows.length
     };
   } catch (error) {
@@ -249,6 +265,7 @@ export const runCardInventorySync = async ({
       errorMessage: error.message,
       metadata: {
         source: 'company-account-cards-list',
+        portfolio_sheet: portfolio.sheetName,
         finished: false
       }
     }).catch(() => {});

@@ -67,6 +67,7 @@ const boot = async () => {
 
       const syncResult = await runCardInventorySync({
         supabase,
+        portfolio,
         baseUrl
       });
       console.log(JSON.stringify(syncResult, null, 2));
