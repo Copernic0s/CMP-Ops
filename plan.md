@@ -130,6 +130,7 @@ For now, the safer route is a bot/worker with explicit selectors and retries.
 - build a small API for snapshot reads
 - add UI surfaces only after the data flow is stable
 - expose latest snapshot reads from Hermes CLI
+- build the card inventory worker for company account cards list
 
 ### Phase 5
 

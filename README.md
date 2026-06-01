@@ -37,6 +37,7 @@ Current implementation:
 - owners sync path that persists into Supabase and records an audit trail
 - first card-status worker scaffold with Supabase persistence
 - snapshot reader command for latest owners/cards/audit rows
+- company account cards inventory worker scaffold
 
 Environment file:
 

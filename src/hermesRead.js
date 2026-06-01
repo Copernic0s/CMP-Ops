@@ -22,15 +22,17 @@ export const loadHermesSnapshot = async (supabase) => {
     throw new Error('Supabase client is required to read Hermes snapshots');
   }
 
-  const [ownerAccess, cardStatus, syncAudit] = await Promise.all([
+  const [ownerAccess, cardStatus, cardInventory, syncAudit] = await Promise.all([
     readTable(supabase, 'cmp_owner_access', { limit: 20, orderBy: 'last_synced_at', ascending: false }),
     readTable(supabase, 'cmp_card_status', { limit: 20, orderBy: 'last_synced_at', ascending: false }),
+    readTable(supabase, 'cmp_card_inventory', { limit: 20, orderBy: 'last_synced_at', ascending: false }),
     readTable(supabase, 'cmp_sync_audit', { limit: 20, orderBy: 'started_at', ascending: false })
   ]);
 
   return {
     ownerAccess,
     cardStatus,
+    cardInventory,
     syncAudit
   };
 };

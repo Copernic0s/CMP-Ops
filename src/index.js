@@ -2,7 +2,7 @@ import { DEFAULT_PORTFOLIO_SHEET_NAME, DEFAULT_PORTFOLIO_SOURCE_URL, loadPortfol
 import { captureOwnerAccessForCompany } from './cmpOwners.js';
 import { createHermesSupabaseClient } from './hermesStore.js';
 import { loadHermesSnapshot } from './hermesRead.js';
-import { runCardStatusSync, runOwnersSync } from './hermesSync.js';
+import { runCardInventorySync, runCardStatusSync, runOwnersSync } from './hermesSync.js';
 
 const boot = async () => {
   const mode = String(process.env.HERMES_MODE || 'dev').trim();
@@ -58,6 +58,18 @@ const boot = async () => {
       const supabase = createHermesSupabaseClient();
       const snapshot = await loadHermesSnapshot(supabase);
       console.log(JSON.stringify(snapshot, null, 2));
+    } else if (command === 'inventory') {
+      const supabase = createHermesSupabaseClient();
+      const baseUrl = String(process.env.HERMES_CMP_URL || '').trim();
+      if (!baseUrl) {
+        throw new Error('HERMES_CMP_URL is required for the inventory worker');
+      }
+
+      const syncResult = await runCardInventorySync({
+        supabase,
+        baseUrl
+      });
+      console.log(JSON.stringify(syncResult, null, 2));
     }
 
     console.log('[Hermes] ready for the first orchestration layer');

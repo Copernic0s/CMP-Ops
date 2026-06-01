@@ -103,3 +103,17 @@ export const upsertCardStatusRows = async (supabase, rows) => {
 
   return { count: rows.length };
 };
+
+export const upsertCardInventoryRows = async (supabase, rows) => {
+  if (!rows || rows.length === 0) return { count: 0 };
+
+  const { error } = await supabase
+    .from('cmp_card_inventory')
+    .upsert(rows, { onConflict: 'card_number' });
+
+  if (error) {
+    throw new Error(`Failed to upsert card inventory rows: ${error.message}`);
+  }
+
+  return { count: rows.length };
+};

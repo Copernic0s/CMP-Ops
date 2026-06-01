@@ -1,6 +1,13 @@
-import { createSyncAuditRun, finishSyncAuditRun, upsertCardStatusRows, upsertOwnerAccessRows } from './hermesStore.js';
+import {
+  createSyncAuditRun,
+  finishSyncAuditRun,
+  upsertCardInventoryRows,
+  upsertCardStatusRows,
+  upsertOwnerAccessRows
+} from './hermesStore.js';
 import { captureOwnerAccessForCompany } from './cmpOwners.js';
 import { captureCardStatusForCompany } from './cmpCards.js';
+import { captureCardInventory, normalizeInventoryCompanyKey } from './cmpInventory.js';
 
 const toOwnerAccessRow = (company, snapshot) => ({
   company_key: company.companyKey,
@@ -178,4 +185,73 @@ export const runCardStatusSync = async ({
     updatedCount,
     results
   };
+};
+
+export const runCardInventorySync = async ({
+  supabase,
+  baseUrl
+}) => {
+  if (!supabase) {
+    throw new Error('Supabase client is required for card inventory sync');
+  }
+
+  const audit = await createSyncAuditRun(supabase, {
+    runType: 'card_inventory_sync',
+    metadata: {
+      source: 'company-account-cards-list'
+    }
+  });
+
+  try {
+    const snapshot = await captureCardInventory({ baseUrl });
+    const rows = (snapshot.rows || []).map((row) => ({
+      card_number: String(row.cardNumber || '').trim(),
+      company_name: String(row.companyName || '').trim(),
+      company_key: normalizeInventoryCompanyKey(row.companyName || ''),
+      organization: String(row.organization || '').trim() || null,
+      efs_account: String(row.efsAccount || '').trim() || null,
+      company_status: String(row.companyStatus || '').trim().toLowerCase() || 'unknown',
+      card_status: String(row.cardStatus || '').trim().toLowerCase() || 'unknown',
+      driver_name: String(row.driverName || '').trim() || null,
+      driver_id: String(row.driverId || '').trim() || null,
+      unit_number: String(row.unitNumber || '').trim() || null,
+      last_used_date: String(row.lastUsedDate || '').trim() || null,
+      source: 'cmp',
+      source_metadata: row.source_metadata || {
+        page_index: row.source_metadata?.page_index || null,
+        row_cells: row.rowCells || [],
+        row_summary: row.rowSummary || ''
+      },
+      last_synced_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    })).filter((row) => row.card_number);
+
+    await upsertCardInventoryRows(supabase, rows);
+
+    await finishSyncAuditRun(supabase, audit.id, {
+      recordsFound: rows.length,
+      recordsUpdated: rows.length,
+      metadata: {
+        source: 'company-account-cards-list',
+        finished: true
+      }
+    });
+
+    return {
+      auditId: audit.id,
+      totalRecords: rows.length,
+      results: rows.length
+    };
+  } catch (error) {
+    await finishSyncAuditRun(supabase, audit.id, {
+      recordsFound: 0,
+      recordsUpdated: 0,
+      errorMessage: error.message,
+      metadata: {
+        source: 'company-account-cards-list',
+        finished: false
+      }
+    }).catch(() => {});
+    throw error;
+  }
 };
