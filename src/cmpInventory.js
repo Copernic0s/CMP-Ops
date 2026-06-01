@@ -248,11 +248,19 @@ const waitForInventoryShell = async (page, log) => {
 };
 
 const findPaginationButton = async (page) => {
-  const candidates = await Promise.all([
-    page.getByRole('button', { name: /next/i }).all().catch(() => []),
-    page.locator('button', { hasText: /next/i }).all().catch(() => []),
-    page.locator('button').filter({ hasText: /next/i }).all().catch(() => [])
-  ]);
+  const scope = await findPaginationScope(page);
+  const searchRoots = scope ? [scope, page] : [page];
+  const candidates = [];
+
+  for (const root of searchRoots) {
+    candidates.push(
+      ...(await Promise.all([
+        root.getByRole('button', { name: /next/i }).all().catch(() => []),
+        root.locator('button, a, [role="button"], [tabindex]').filter({ hasText: /next/i }).all().catch(() => []),
+        root.getByText(/next/i).all().catch(() => [])
+      ]))
+    );
+  }
 
   for (const bucket of candidates) {
     for (let index = bucket.length - 1; index >= 0; index -= 1) {
@@ -269,6 +277,34 @@ const getVisibleButtonLabel = async (candidate) => {
   const ariaLabel = String(await candidate.getAttribute('aria-label').catch(() => '') || '').trim();
   const text = String(await candidate.innerText().catch(() => '') || '').trim();
   return ariaLabel || text;
+};
+
+const findPaginationScope = async (page) => {
+  const markers = [
+    page.getByText(/previous/i),
+    page.getByText(/next/i),
+    page.getByText(/go to:/i)
+  ];
+
+  for (const marker of markers) {
+    const count = await marker.count().catch(() => 0);
+    for (let index = 0; index < count; index += 1) {
+      const candidate = marker.nth(index);
+      const visible = await candidate.isVisible().catch(() => false);
+      if (!visible) continue;
+
+      let current = candidate;
+      for (let depth = 0; depth < 4; depth += 1) {
+        current = current.locator('xpath=ancestor::*[1]');
+        const text = String(await current.innerText().catch(() => '') || '').trim();
+        if (/(previous|next|go to:|\d+\s+next)/i.test(text)) {
+          return current;
+        }
+      }
+    }
+  }
+
+  return null;
 };
 
 const findCurrentPaginationPage = async (page) => {
@@ -292,7 +328,8 @@ const findCurrentPaginationPage = async (page) => {
 };
 
 const findVisiblePaginationPageButtons = async (page) => {
-  const buttons = await page.getByRole('button').all().catch(() => []);
+  const scope = await findPaginationScope(page);
+  const buttons = await (scope || page).locator('button, a, [role="button"], [tabindex]').all().catch(() => []);
   const results = [];
 
   for (const candidate of buttons) {
@@ -315,7 +352,16 @@ const findVisiblePaginationPageButtons = async (page) => {
 const findPaginationPageButton = async (page, targetPageNumber) => {
   if (!Number.isFinite(targetPageNumber) || targetPageNumber <= 0) return null;
   const label = new RegExp(`^${targetPageNumber}$`);
-  const candidates = await page.getByRole('button', { name: label }).all().catch(() => []);
+  const scope = await findPaginationScope(page);
+  const roots = scope ? [scope, page] : [page];
+  const candidates = [];
+
+  for (const root of roots) {
+    candidates.push(...await root.getByRole('button', { name: label }).all().catch(() => []));
+    candidates.push(...await root.locator('button, a, [role="button"], [tabindex]').filter({ hasText: label }).all().catch(() => []));
+    candidates.push(...await root.getByText(label).all().catch(() => []));
+  }
+
   for (const candidate of candidates) {
     const visible = await candidate.isVisible().catch(() => false);
     if (visible) return candidate;
