@@ -33,3 +33,4 @@ Current implementation:
 - portfolio loader module with workbook parsing
 - normalized company-key extraction
 - first boot path that loads the Zoho sheet and prints the company count
+- first owners-worker path that can attach to a Chrome profile with session already open

@@ -120,6 +120,7 @@ For now, the safer route is a bot/worker with explicit selectors and retries.
 - build the worker skeleton
 - add audit logging
 - add retry and timeout handling
+- attach the owners worker to a logged-in Chrome profile and capture password popups
 
 ### Phase 4
 

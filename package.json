@@ -5,10 +5,12 @@
   "type": "module",
   "scripts": {
     "dev": "node --watch src/index.js",
+    "owners": "node src/index.js owners",
     "start": "node src/index.js",
     "test": "node --test"
   },
   "dependencies": {
+    "playwright-core": "^1.54.2",
     "xlsx": "^0.18.5"
   }
 }
