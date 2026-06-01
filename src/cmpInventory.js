@@ -292,7 +292,7 @@ const findCurrentPaginationPage = async (page) => {
 };
 
 const findVisiblePaginationPageButtons = async (page) => {
-  const buttons = await page.locator('button').all().catch(() => []);
+  const buttons = await page.getByRole('button').all().catch(() => []);
   const results = [];
 
   for (const candidate of buttons) {
@@ -300,9 +300,10 @@ const findVisiblePaginationPageButtons = async (page) => {
     if (!visible) continue;
 
     const label = String(await getVisibleButtonLabel(candidate).catch(() => '') || '').trim();
-    if (!/^\d+$/.test(label)) continue;
+    const numericMatch = label.match(/^\s*(\d+)\s*$/) || String(await candidate.textContent().catch(() => '') || '').trim().match(/^\s*(\d+)\s*$/);
+    if (!numericMatch) continue;
 
-    const pageNumber = Number(label);
+    const pageNumber = Number(numericMatch[1]);
     if (!Number.isFinite(pageNumber) || pageNumber <= 0) continue;
     results.push({ candidate, pageNumber });
   }
@@ -395,6 +396,21 @@ const clickNextPage = async (page, log) => {
     } else {
       log(`numeric page ${numericCandidate.pageNumber} is disabled`);
     }
+  }
+
+  if (numericButtons.length === 0) {
+    const labels = await page
+      .getByRole('button')
+      .all()
+      .catch(() => []);
+    const visibleLabels = [];
+    for (const candidate of labels) {
+      const visible = await candidate.isVisible().catch(() => false);
+      if (!visible) continue;
+      const label = String(await getVisibleButtonLabel(candidate).catch(() => '') || '').trim();
+      if (label) visibleLabels.push(label);
+    }
+    log(`no numeric pagination buttons found; visible buttons: ${visibleLabels.slice(0, 20).join(' | ')}`);
   }
 
   const nextButton = await findPaginationButton(page);
