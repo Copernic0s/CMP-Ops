@@ -331,6 +331,44 @@ const findCurrentPaginationPage = async (page) => {
   return null;
 };
 
+const parsePaginationRange = (text) => {
+  const match = String(text || '').match(/\b(\d+)-(\d+) of (\d+) items\b/i);
+  if (!match) return null;
+  return {
+    start: Number(match[1]),
+    end: Number(match[2]),
+    total: Number(match[3])
+  };
+};
+
+const findPaginationRangeText = async (page) => {
+  const candidates = await page
+    .getByText(/\b\d+-\d+ of \d+ items\b/i)
+    .all()
+    .catch(() => []);
+
+  for (const candidate of candidates) {
+    const visible = await candidate.isVisible().catch(() => false);
+    if (!visible) continue;
+
+    const text = String(await candidate.textContent().catch(() => '') || '').trim();
+    if (parsePaginationRange(text)) return text;
+  }
+
+  return '';
+};
+
+const findCurrentPageFromFooter = async (page, pageSize) => {
+  const rangeText = await findPaginationRangeText(page);
+  const range = parsePaginationRange(rangeText);
+  if (!range) return null;
+
+  const size = Number(pageSize);
+  if (!Number.isFinite(size) || size <= 0) return null;
+
+  return Math.max(1, Math.ceil(range.start / size));
+};
+
 const waitForPaginationTransition = async (page, previousPageNumber, previousSignature, log) => {
   for (let attempt = 0; attempt < 24; attempt += 1) {
     await sleep(250);
@@ -440,7 +478,8 @@ const extractRowsFromPage = async (page, headers) => {
 };
 
 const clickNextPage = async (page, log) => {
-  const currentPageNumber = await findCurrentPaginationPage(page);
+  const currentPageNumber = await findCurrentPaginationPage(page)
+    || await findCurrentPageFromFooter(page, resolveInventoryPageSize(process.env));
   const numericButtons = await findVisiblePaginationPageButtons(page);
   const preferredTarget = Number.isFinite(currentPageNumber) ? currentPageNumber + 1 : null;
   const currentSignature = await getInventoryTableSignature(page);
