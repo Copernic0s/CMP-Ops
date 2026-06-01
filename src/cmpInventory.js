@@ -167,18 +167,11 @@ const gatherTableHeaders = async (page) => {
 
 const setInventoryPageSize = async (page, desiredSize, log) => {
   const pageSizeLabel = `${desiredSize} per page`;
-  const paginationRoot = await findPaginationRoot(page);
-  const combobox = paginationRoot
-    ? await firstVisible([
-        paginationRoot.getByRole('combobox').filter({ hasText: /per page/i }),
-        paginationRoot.getByRole('combobox', { name: /per page/i }),
-        paginationRoot.getByText(/per page/i)
-      ])
-    : await firstVisible([
-        page.getByRole('combobox').filter({ hasText: /per page/i }),
-        page.getByRole('combobox', { name: /per page/i }),
-        page.getByText(/per page/i)
-      ]);
+  const combobox = await firstVisible([
+    page.getByRole('combobox').filter({ hasText: /per page/i }),
+    page.getByRole('combobox', { name: /per page/i }),
+    page.getByText(/per page/i)
+  ]);
 
   if (!combobox) {
     log('page size control not found, continuing with default page size');
@@ -196,8 +189,8 @@ const setInventoryPageSize = async (page, desiredSize, log) => {
   await page.waitForTimeout(300);
 
   const option = await firstVisible([
-    paginationRoot ? paginationRoot.getByRole('option', { name: pageSizeLabel, exact: false }) : page.getByRole('option', { name: pageSizeLabel, exact: false }),
-    paginationRoot ? paginationRoot.getByText(pageSizeLabel, { exact: false }) : page.getByText(pageSizeLabel, { exact: false })
+    page.getByRole('option', { name: pageSizeLabel, exact: false }),
+    page.getByText(pageSizeLabel, { exact: false })
   ]);
 
   if (!option) {
@@ -230,19 +223,29 @@ const waitForInventoryTable = async (page, log) => {
   log(`table wait ended with ${headers.length} headers and ${rowCount} rows; body="${bodyText.slice(0, 120)}"`);
 };
 
-const findPaginationRoot = async (page) =>
-  firstVisible([
-    page.getByText(/\b\d+-\d+ of \d+ items\b/i).locator('xpath=ancestor::*[self::div or self::footer or self::nav][1]'),
-    page.getByText(/per page/i).locator('xpath=ancestor::*[self::div or self::footer or self::nav][1]')
-  ]);
+const findPaginationButton = async (page, labelPattern) => {
+  const candidates = await page.getByRole('button', { name: labelPattern, exact: false }).all().catch(() => []);
+  for (const candidate of candidates) {
+    const visible = await candidate.isVisible().catch(() => false);
+    if (!visible) continue;
 
-const locatePaginationButton = async (page, labelPattern) => {
-  const root = await findPaginationRoot(page);
-  if (!root) return null;
-  return firstVisible([
-    root.getByRole('button', { name: labelPattern, exact: false }),
-    root.getByText(labelPattern, { exact: false })
-  ]);
+    const contextualText = await candidate.evaluate((el) => {
+      let node = el;
+      for (let depth = 0; depth < 6 && node; depth += 1, node = node.parentElement) {
+        const text = String(node.innerText || '').trim();
+        if (/per page/i.test(text) && /\b\d+-\d+ of \d+ items\b/i.test(text)) {
+          return text;
+        }
+      }
+      return '';
+    }).catch(() => '');
+
+    if (contextualText) {
+      return candidate;
+    }
+  }
+
+  return null;
 };
 
 const extractRowsFromPage = async (page, headers) => {
@@ -273,7 +276,7 @@ const extractRowsFromPage = async (page, headers) => {
 };
 
 const clickNextPage = async (page) => {
-  const nextButton = await locatePaginationButton(page, /next/i);
+  const nextButton = await findPaginationButton(page, /^Next$/i);
   if (!nextButton) return false;
 
   const disabled = await nextButton.isDisabled().catch(() => true);
