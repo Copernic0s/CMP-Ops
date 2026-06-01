@@ -3,7 +3,11 @@ import { createClient } from '@supabase/supabase-js';
 export const resolveSupabaseSettings = (env = process.env) => {
   const url = String(env.HERMES_SUPABASE_URL || env.SUPABASE_URL || env.VITE_SUPABASE_URL || '').trim();
   const serviceKey = String(
-    env.HERMES_SUPABASE_SERVICE_ROLE_KEY || env.SUPABASE_SERVICE_ROLE_KEY || ''
+    env.HERMES_SUPABASE_SERVICE_ROLE_KEY ||
+    env.HERMES_SUPABASE_SECRET_KEY ||
+    env.SUPABASE_SERVICE_ROLE_KEY ||
+    env.SUPABASE_SECRET_KEY ||
+    ''
   ).trim();
 
   return {
