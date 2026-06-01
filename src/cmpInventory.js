@@ -160,7 +160,9 @@ const waitForInventoryTable = async (page, log) => {
   for (let attempt = 0; attempt < 20; attempt += 1) {
     const headers = await gatherTableHeaders(page);
     const rowCount = await page.locator('table tbody tr').count().catch(() => 0);
-    if (headers.length > 0 && rowCount > 0) {
+    const bodyText = String(await page.locator('table tbody').innerText().catch(() => '') || '').trim();
+    const hasPlaceholder = /nothing found/i.test(bodyText);
+    if (headers.length > 0 && rowCount > 1 && !hasPlaceholder) {
       log(`table ready with ${headers.length} headers and ${rowCount} rows`);
       return;
     }
@@ -169,7 +171,8 @@ const waitForInventoryTable = async (page, log) => {
 
   const headers = await gatherTableHeaders(page);
   const rowCount = await page.locator('table tbody tr').count().catch(() => 0);
-  log(`table wait ended with ${headers.length} headers and ${rowCount} rows`);
+  const bodyText = String(await page.locator('table tbody').innerText().catch(() => '') || '').trim();
+  log(`table wait ended with ${headers.length} headers and ${rowCount} rows; body="${bodyText.slice(0, 120)}"`);
 };
 
 const extractRowsFromPage = async (page, headers) => {
@@ -183,6 +186,7 @@ const extractRowsFromPage = async (page, headers) => {
     const cells = await row.locator('td, [role="cell"]').allTextContents().catch(() => []);
     const cleaned = cells.map((value) => String(value || '').trim());
     if (cleaned.length === 0) continue;
+    if (cleaned.length === 1 && /nothing found/i.test(cleaned[0] || '')) continue;
 
     const summary = String(await row.textContent({ timeoutMs: 10000 }).catch(() => '') || '').trim();
     const parsed = parseInventoryRow(cleaned, headers);
@@ -205,12 +209,15 @@ const clickNextPage = async (page) => {
   const disabled = await nextButton.isDisabled().catch(() => true);
   if (disabled) return false;
 
-  const previousContent = await page.locator('tbody').textContent({ timeoutMs: 10000 }).catch(() => '');
+  const previousRange = String(await page.locator('body').innerText().catch(() => '') || '').match(/\b\d+-\d+ of \d+ items\b/i)?.[0] || '';
   await nextButton.click({ timeoutMs: 15000 });
   for (let i = 0; i < 20; i += 1) {
     await sleep(500);
-    const currentContent = await page.locator('tbody').textContent({ timeoutMs: 10000 }).catch(() => '');
-    if (String(currentContent || '').trim() && currentContent !== previousContent) {
+    const bodyText = String(await page.locator('body').innerText().catch(() => '') || '');
+    const currentRange = bodyText.match(/\b\d+-\d+ of \d+ items\b/i)?.[0] || '';
+    const rowCount = await page.locator('table tbody tr').count().catch(() => 0);
+    const hasPlaceholder = /nothing found/i.test(bodyText);
+    if (currentRange && currentRange !== previousRange && rowCount > 1 && !hasPlaceholder) {
       return true;
     }
   }
