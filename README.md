@@ -34,3 +34,9 @@ Current implementation:
 - normalized company-key extraction
 - first boot path that loads the Zoho sheet and prints the company count
 - first owners-worker path that can attach to a Chrome profile with session already open
+- owners sync path that persists into Supabase and records an audit trail
+
+Environment file:
+
+- copy [`.env.example`](C:/Users/AndresMendez/Documents/Debors-Clean/CMP-Ops/.env.example) into `.env`
+- fill in Chrome, CMP, and Supabase credentials before running the owners sync

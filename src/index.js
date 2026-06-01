@@ -1,5 +1,7 @@
 import { DEFAULT_PORTFOLIO_SHEET_NAME, DEFAULT_PORTFOLIO_SOURCE_URL, loadPortfolioFromSource } from './portfolio.js';
 import { captureOwnerAccessForCompany } from './cmpOwners.js';
+import { createHermesSupabaseClient } from './hermesStore.js';
+import { runOwnersSync } from './hermesSync.js';
 
 const boot = async () => {
   const mode = String(process.env.HERMES_MODE || 'dev').trim();
@@ -20,12 +22,24 @@ const boot = async () => {
     console.log(`[Hermes] loaded ${portfolio.companies.length} companies from ${portfolio.sheetName}`);
 
     if (command === 'owners') {
-      const companyName = String(process.env.HERMES_TARGET_COMPANY || portfolio.companies[0]?.companyName || '').trim();
-      if (!companyName) {
-        throw new Error('No company available for the owners worker');
+      const supabase = createHermesSupabaseClient();
+      const baseUrl = String(process.env.HERMES_CMP_URL || '').trim();
+      if (!baseUrl) {
+        throw new Error('HERMES_CMP_URL is required for the owners worker');
       }
-      const ownerResult = await captureOwnerAccessForCompany(companyName);
-      console.log(JSON.stringify(ownerResult, null, 2));
+
+      if (process.env.HERMES_TARGET_COMPANY) {
+        const companyName = String(process.env.HERMES_TARGET_COMPANY || '').trim();
+        const ownerResult = await captureOwnerAccessForCompany(companyName, { baseUrl });
+        console.log(JSON.stringify(ownerResult, null, 2));
+      } else {
+        const syncResult = await runOwnersSync({
+          supabase,
+          portfolio,
+          baseUrl
+        });
+        console.log(JSON.stringify(syncResult, null, 2));
+      }
     }
 
     console.log('[Hermes] ready for the first orchestration layer');

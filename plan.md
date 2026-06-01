@@ -114,6 +114,7 @@ For now, the safer route is a bot/worker with explicit selectors and retries.
 
 - create Supabase tables and policies
 - create indexes for portfolio lookup and latest sync queries
+- persist owners sync runs and audit history
 
 ### Phase 3
 
@@ -121,6 +122,7 @@ For now, the safer route is a bot/worker with explicit selectors and retries.
 - add audit logging
 - add retry and timeout handling
 - attach the owners worker to a logged-in Chrome profile and capture password popups
+- upsert owner access snapshots into Supabase after each company
 
 ### Phase 4
 

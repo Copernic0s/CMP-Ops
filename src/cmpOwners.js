@@ -102,6 +102,23 @@ const readPopupPassword = async (page) => {
   };
 };
 
+const extractOwnerRowFields = async (row, companyName) => {
+  const cells = await row.locator('td, [role="cell"]').allTextContents().catch(() => []);
+  const cleanedCells = cells.map((value) => String(value || '').trim()).filter(Boolean);
+  const emailMatch = cleanedCells.find((value) => /@/.test(value)) || '';
+  const companyMatch = cleanedCells[0] || companyName || '';
+  const nonActionCells = cleanedCells.filter((value) => !/^(?:\.{3}|more actions|actions|show password|copy(?: to clipboard)?)$/i.test(value));
+  const usernameMatch = nonActionCells.find((value) => value !== companyMatch && value !== emailMatch && !/@/.test(value)) || '';
+
+  return {
+    rowCells: cleanedCells,
+    companyName: companyMatch || companyName || '',
+    ownerEmail: emailMatch || '',
+    username: usernameMatch || '',
+    ownerName: ''
+  };
+};
+
 export const captureOwnerAccessForCompany = async (companyName, options = {}) => {
   if (!companyName) {
     throw new Error('companyName is required');
@@ -149,19 +166,26 @@ export const captureOwnerAccessForCompany = async (companyName, options = {}) =>
   }
 
   const rowText = await row.textContent({ timeoutMs: 15000 }).catch(() => '');
+  const rowFields = await extractOwnerRowFields(row, companyName);
 
   await openPasswordPopup(activePage, row);
   const passwordPayload = await readPopupPassword(activePage);
 
   const result = {
-    companyName,
+    companyName: rowFields.companyName || companyName,
+    ownerEmail: rowFields.ownerEmail || '',
+    username: rowFields.username || '',
+    ownerName: rowFields.ownerName || '',
+    rowCells: rowFields.rowCells || [],
     rowText: String(rowText || '').trim(),
     passwordPopup: passwordPayload.popupText,
-    clipboardPassword: passwordPayload.clipboardText
+    clipboardPassword: passwordPayload.clipboardText,
+    password: passwordPayload.clipboardText || passwordPayload.popupText,
+    rowSummary: String(rowText || '').trim().slice(0, 500)
   };
 
-  if (browser) {
-    await browser.close().catch(() => {});
+  if (browser && typeof browser.disconnect === 'function') {
+    browser.disconnect();
   }
 
   return result;
