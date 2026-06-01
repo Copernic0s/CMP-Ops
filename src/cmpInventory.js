@@ -223,26 +223,12 @@ const waitForInventoryTable = async (page, log) => {
   log(`table wait ended with ${headers.length} headers and ${rowCount} rows; body="${bodyText.slice(0, 120)}"`);
 };
 
-const findPaginationButton = async (page, labelPattern) => {
-  const candidates = await page.getByRole('button', { name: labelPattern, exact: false }).all().catch(() => []);
-  for (const candidate of candidates) {
+const findPaginationButton = async (page) => {
+  const buttons = await page.getByRole('button', { name: /^Next$/i }).all().catch(() => []);
+  for (let index = buttons.length - 1; index >= 0; index -= 1) {
+    const candidate = buttons[index];
     const visible = await candidate.isVisible().catch(() => false);
-    if (!visible) continue;
-
-    const contextualText = await candidate.evaluate((el) => {
-      let node = el;
-      for (let depth = 0; depth < 6 && node; depth += 1, node = node.parentElement) {
-        const text = String(node.innerText || '').trim();
-        if (/per page/i.test(text) && /\b\d+-\d+ of \d+ items\b/i.test(text)) {
-          return text;
-        }
-      }
-      return '';
-    }).catch(() => '');
-
-    if (contextualText) {
-      return candidate;
-    }
+    if (visible) return candidate;
   }
 
   return null;
@@ -276,7 +262,7 @@ const extractRowsFromPage = async (page, headers) => {
 };
 
 const clickNextPage = async (page) => {
-  const nextButton = await findPaginationButton(page, /^Next$/i);
+  const nextButton = await findPaginationButton(page);
   if (!nextButton) return false;
 
   const disabled = await nextButton.isDisabled().catch(() => true);
