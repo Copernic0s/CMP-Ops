@@ -43,6 +43,7 @@ Environment file:
 
 - copy [`.env.example`](C:/Users/AndresMendez/Documents/Debors-Clean/CMP-Ops/.env.example) into `.env`
 - fill in Chrome, CMP, and Supabase credentials before running the owners sync
+- if Chrome is already open on `Profile 8` without the debugger port, close it first or set `HERMES_CHROME_FORCE_RESTART=true`
 
 Database bootstrap:
 
