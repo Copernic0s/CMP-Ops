@@ -12,6 +12,7 @@ const DEFAULT_INVENTORY_TAB_NAMES = [
 const DEFAULT_SEARCH_TEXTS = ['Search', 'Search card', 'Search card number', 'Card number'];
 const DEFAULT_NEXT_TEXTS = ['Next', '>', '›', 'Next >', 'Next ›'];
 const DEFAULT_INVENTORY_PATH = '/company-account-cards';
+const DEFAULT_PAGE_SIZE = 100;
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -61,6 +62,14 @@ const resolveInventoryUrl = (baseUrl, inventoryPath) => {
   if (!path) return baseUrl;
   if (/^https?:\/\//i.test(path)) return path;
   return `${String(baseUrl || '').replace(/\/$/, '')}${path.startsWith('/') ? path : `/${path}`}`;
+};
+
+const resolveInventoryPageSize = (env = process.env) => {
+  const requested = Number(env.HERMES_INVENTORY_PAGE_SIZE || DEFAULT_PAGE_SIZE);
+  if (requested >= 100) return 100;
+  if (requested >= 50) return 50;
+  if (requested >= 20) return 20;
+  return 10;
 };
 
 const findInventoryNavigation = async (page) => {
@@ -156,6 +165,52 @@ const gatherTableHeaders = async (page) => {
   return headerCells.map((value) => String(value || '').trim()).filter(Boolean);
 };
 
+const setInventoryPageSize = async (page, desiredSize, log) => {
+  const pageSizeLabel = `${desiredSize} per page`;
+  const paginationRoot = await findPaginationRoot(page);
+  const combobox = paginationRoot
+    ? await firstVisible([
+        paginationRoot.getByRole('combobox').filter({ hasText: /per page/i }),
+        paginationRoot.getByRole('combobox', { name: /per page/i }),
+        paginationRoot.getByText(/per page/i)
+      ])
+    : await firstVisible([
+        page.getByRole('combobox').filter({ hasText: /per page/i }),
+        page.getByRole('combobox', { name: /per page/i }),
+        page.getByText(/per page/i)
+      ]);
+
+  if (!combobox) {
+    log('page size control not found, continuing with default page size');
+    return false;
+  }
+
+  const currentLabel = String(await combobox.textContent().catch(() => '') || '').trim();
+  if (currentLabel.includes(pageSizeLabel)) {
+    log(`page size already set to ${pageSizeLabel}`);
+    return true;
+  }
+
+  log(`setting page size to ${pageSizeLabel}`);
+  await combobox.click({ timeoutMs: 10000 });
+  await page.waitForTimeout(300);
+
+  const option = await firstVisible([
+    paginationRoot ? paginationRoot.getByRole('option', { name: pageSizeLabel, exact: false }) : page.getByRole('option', { name: pageSizeLabel, exact: false }),
+    paginationRoot ? paginationRoot.getByText(pageSizeLabel, { exact: false }) : page.getByText(pageSizeLabel, { exact: false })
+  ]);
+
+  if (!option) {
+    log(`page size option ${pageSizeLabel} not found, keeping current size`);
+    await page.keyboard.press('Escape').catch(() => {});
+    return false;
+  }
+
+  await option.click({ timeoutMs: 10000 });
+  await page.waitForTimeout(800);
+  return true;
+};
+
 const waitForInventoryTable = async (page, log) => {
   for (let attempt = 0; attempt < 20; attempt += 1) {
     const headers = await gatherTableHeaders(page);
@@ -173,6 +228,21 @@ const waitForInventoryTable = async (page, log) => {
   const rowCount = await page.locator('table tbody tr').count().catch(() => 0);
   const bodyText = String(await page.locator('table tbody').innerText().catch(() => '') || '').trim();
   log(`table wait ended with ${headers.length} headers and ${rowCount} rows; body="${bodyText.slice(0, 120)}"`);
+};
+
+const findPaginationRoot = async (page) =>
+  firstVisible([
+    page.getByText(/\b\d+-\d+ of \d+ items\b/i).locator('xpath=ancestor::*[self::div or self::footer or self::nav][1]'),
+    page.getByText(/per page/i).locator('xpath=ancestor::*[self::div or self::footer or self::nav][1]')
+  ]);
+
+const locatePaginationButton = async (page, labelPattern) => {
+  const root = await findPaginationRoot(page);
+  if (!root) return null;
+  return firstVisible([
+    root.getByRole('button', { name: labelPattern, exact: false }),
+    root.getByText(labelPattern, { exact: false })
+  ]);
 };
 
 const extractRowsFromPage = async (page, headers) => {
@@ -203,7 +273,7 @@ const extractRowsFromPage = async (page, headers) => {
 };
 
 const clickNextPage = async (page) => {
-  const nextButton = await findNextButton(page);
+  const nextButton = await locatePaginationButton(page, /next/i);
   if (!nextButton) return false;
 
   const disabled = await nextButton.isDisabled().catch(() => true);
@@ -282,6 +352,8 @@ export const captureCardInventory = async (options = {}) => {
     log('search box not found, continuing with visible table');
   }
 
+  const desiredPageSize = resolveInventoryPageSize(process.env);
+  await setInventoryPageSize(activePage, desiredPageSize, log);
   await waitForInventoryTable(activePage, log);
 
   const rows = [];

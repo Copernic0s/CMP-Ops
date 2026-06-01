@@ -46,6 +46,7 @@ Environment file:
 - Hermes uses a dedicated Chrome data dir so it does not disturb your normal sessions
 - the default local setup points Chrome at `User Data Hermes` with `Default` profile
 - on first run, that dedicated profile is clean; sign into CMP once there and Hermes can reuse it afterward
+- CMP only exposes 10, 20, 50, and 100 rows per page; Hermes uses 100 to reduce the crawl count as much as the UI allows
 - if you want Hermes to reuse another profile, set `HERMES_CHROME_FORCE_RESTART=true` only when you are okay with that profile being restarted with the debugger port
 
 Database bootstrap:
