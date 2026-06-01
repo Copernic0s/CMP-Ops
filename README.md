@@ -42,8 +42,11 @@ Current implementation:
 Environment file:
 
 - copy [`.env.example`](C:/Users/AndresMendez/Documents/Debors-Clean/CMP-Ops/.env.example) into `.env`
-- fill in Chrome, CMP, and Supabase credentials before running the owners sync
-- if Chrome is already open on `Profile 8` without the debugger port, close it first or set `HERMES_CHROME_FORCE_RESTART=true`
+- fill in Chrome, CMP, and Supabase credentials before running the workers
+- Hermes uses a dedicated Chrome data dir so it does not disturb your normal sessions
+- the default local setup points Chrome at `User Data Hermes` with `Default` profile
+- on first run, that dedicated profile is clean; sign into CMP once there and Hermes can reuse it afterward
+- if you want Hermes to reuse another profile, set `HERMES_CHROME_FORCE_RESTART=true` only when you are okay with that profile being restarted with the debugger port
 
 Database bootstrap:
 

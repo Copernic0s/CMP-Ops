@@ -10,9 +10,21 @@ const DEFAULT_INVENTORY_TAB_NAMES = [
 ];
 
 const DEFAULT_SEARCH_TEXTS = ['Search', 'Search card', 'Search card number', 'Card number'];
-const DEFAULT_NEXT_TEXTS = ['Next', '›', '>', 'Next ›'];
+const DEFAULT_NEXT_TEXTS = ['Next', '>', '›', 'Next >', 'Next ›'];
+const DEFAULT_INVENTORY_PATH = '/company-account-cards';
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const createLogger = (options = {}) => {
+  const log = typeof options.log === 'function' ? options.log : console.log;
+  return (message, extra = null) => {
+    if (extra === null || extra === undefined) {
+      log(`[Hermes][inventory] ${message}`);
+      return;
+    }
+    log(`[Hermes][inventory] ${message}`, extra);
+  };
+};
 
 const firstVisible = async (locators) => {
   for (const locator of locators) {
@@ -43,6 +55,13 @@ const getNextTexts = (env = process.env) =>
     .split('|')
     .map((item) => item.trim())
     .filter(Boolean);
+
+const resolveInventoryUrl = (baseUrl, inventoryPath) => {
+  const path = String(inventoryPath || process.env.HERMES_CMP_INVENTORY_PATH || DEFAULT_INVENTORY_PATH).trim();
+  if (!path) return baseUrl;
+  if (/^https?:\/\//i.test(path)) return path;
+  return `${String(baseUrl || '').replace(/\/$/, '')}${path.startsWith('/') ? path : `/${path}`}`;
+};
 
 const findInventoryNavigation = async (page) => {
   const tabNames = getTabNames();
@@ -132,16 +151,6 @@ const parseInventoryRow = (cells, headers) => {
 export const normalizeInventoryCompanyKey = normalizeCompanyKey;
 
 const gatherTableHeaders = async (page) => {
-  const headerCandidates = await page.locator('th, [role="columnheader"]').all().catch(() => []);
-  for (const candidate of headerCandidates) {
-    const visible = await candidate.isVisible().catch(() => false);
-    if (!visible) continue;
-  }
-
-  const text = await page.locator('thead').textContent({ timeoutMs: 10000 }).catch(() => '');
-  const headerText = String(text || '').trim();
-  if (!headerText) return [];
-
   const table = await page.locator('table').first();
   const headerCells = await table.locator('thead th, thead [role="columnheader"]').allTextContents().catch(() => []);
   return headerCells.map((value) => String(value || '').trim()).filter(Boolean);
@@ -158,6 +167,7 @@ const extractRowsFromPage = async (page, headers) => {
     const cells = await row.locator('td, [role="cell"]').allTextContents().catch(() => []);
     const cleaned = cells.map((value) => String(value || '').trim());
     if (cleaned.length === 0) continue;
+
     const summary = String(await row.textContent({ timeoutMs: 10000 }).catch(() => '') || '').trim();
     const parsed = parseInventoryRow(cleaned, headers);
     if (!parsed.cardNumber) continue;
@@ -195,6 +205,7 @@ const clickNextPage = async (page) => {
 export const captureCardInventory = async (options = {}) => {
   const settings = resolveChromeSettings();
   const page = options.page || null;
+  const log = createLogger(options);
   let browser = null;
   let context = null;
   let activePage = page;
@@ -214,17 +225,38 @@ export const captureCardInventory = async (options = {}) => {
     throw new Error('HERMES_CMP_URL is required to open the CMP app');
   }
 
-  await activePage.goto(baseUrl, { waitUntil: 'domcontentloaded' });
+  const inventoryUrl = resolveInventoryUrl(baseUrl, options.inventoryPath);
+  log(`opening profile ${settings.profileDir} at ${settings.userDataDir}`);
+  log(`profile landing page is allowed, but worker will redirect to inventory route if needed`);
+  log(`navigating to ${inventoryUrl}`);
+  await activePage.goto(inventoryUrl, { waitUntil: 'domcontentloaded' });
+  await activePage.waitForLoadState('networkidle').catch(() => {});
+
+  const currentUrl = activePage.url();
+  log(`current url ${currentUrl}`);
 
   const inventoryNav = await findInventoryNavigation(activePage);
-  if (!inventoryNav) {
+  const isInventoryPage = String(currentUrl || '').includes('/company-account-cards');
+  if (!inventoryNav && !isInventoryPage) {
     throw new Error('Company account cards navigation was not found in CMP');
   }
-  await inventoryNav.click({ timeoutMs: 15000 });
+
+  if (!isInventoryPage) {
+    log('redirecting directly to company-account-cards');
+    await activePage.goto(inventoryUrl, { waitUntil: 'domcontentloaded' });
+    await activePage.waitForLoadState('networkidle').catch(() => {});
+  } else if (inventoryNav) {
+    log('clicking Company account cards navigation');
+    await inventoryNav.click({ timeoutMs: 15000 });
+    await activePage.waitForLoadState('networkidle').catch(() => {});
+  }
 
   const searchBox = await findSearchBox(activePage);
   if (searchBox) {
+    log('search box found, clearing it');
     await searchBox.fill('', { timeoutMs: 10000 }).catch(() => {});
+  } else {
+    log('search box not found, continuing with visible table');
   }
 
   const rows = [];
@@ -233,7 +265,9 @@ export const captureCardInventory = async (options = {}) => {
 
   for (let pageIndex = 0; pageIndex < maxPages; pageIndex += 1) {
     const headers = await gatherTableHeaders(activePage);
+    log(`reading page ${pageIndex + 1} with ${headers.length} headers`);
     const pageRows = await extractRowsFromPage(activePage, headers);
+    log(`found ${pageRows.length} visible rows on page ${pageIndex + 1}`);
 
     for (const row of pageRows) {
       const key = String(row.cardNumber || '').trim();
@@ -251,8 +285,14 @@ export const captureCardInventory = async (options = {}) => {
     }
 
     const advanced = await clickNextPage(activePage);
-    if (!advanced) break;
+    if (!advanced) {
+      log('pagination ended');
+      break;
+    }
+    log(`advanced to next page after ${pageIndex + 1}`);
   }
+
+  log(`inventory crawl complete with ${rows.length} unique card rows`);
 
   if (browser && typeof browser.disconnect === 'function') {
     browser.disconnect();
