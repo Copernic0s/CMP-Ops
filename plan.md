@@ -123,11 +123,13 @@ For now, the safer route is a bot/worker with explicit selectors and retries.
 - add retry and timeout handling
 - attach the owners worker to a logged-in Chrome profile and capture password popups
 - upsert owner access snapshots into Supabase after each company
+- add the card status worker and persist card snapshots
 
 ### Phase 4
 
 - build a small API for snapshot reads
 - add UI surfaces only after the data flow is stable
+- expose latest snapshot reads from Hermes CLI
 
 ### Phase 5
 

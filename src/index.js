@@ -1,7 +1,8 @@
 import { DEFAULT_PORTFOLIO_SHEET_NAME, DEFAULT_PORTFOLIO_SOURCE_URL, loadPortfolioFromSource } from './portfolio.js';
 import { captureOwnerAccessForCompany } from './cmpOwners.js';
 import { createHermesSupabaseClient } from './hermesStore.js';
-import { runOwnersSync } from './hermesSync.js';
+import { loadHermesSnapshot } from './hermesRead.js';
+import { runCardStatusSync, runOwnersSync } from './hermesSync.js';
 
 const boot = async () => {
   const mode = String(process.env.HERMES_MODE || 'dev').trim();
@@ -40,6 +41,23 @@ const boot = async () => {
         });
         console.log(JSON.stringify(syncResult, null, 2));
       }
+    } else if (command === 'cards') {
+      const supabase = createHermesSupabaseClient();
+      const baseUrl = String(process.env.HERMES_CMP_URL || '').trim();
+      if (!baseUrl) {
+        throw new Error('HERMES_CMP_URL is required for the card status worker');
+      }
+
+      const syncResult = await runCardStatusSync({
+        supabase,
+        portfolio,
+        baseUrl
+      });
+      console.log(JSON.stringify(syncResult, null, 2));
+    } else if (command === 'snapshot') {
+      const supabase = createHermesSupabaseClient();
+      const snapshot = await loadHermesSnapshot(supabase);
+      console.log(JSON.stringify(snapshot, null, 2));
     }
 
     console.log('[Hermes] ready for the first orchestration layer');

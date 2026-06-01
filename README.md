@@ -35,6 +35,8 @@ Current implementation:
 - first boot path that loads the Zoho sheet and prints the company count
 - first owners-worker path that can attach to a Chrome profile with session already open
 - owners sync path that persists into Supabase and records an audit trail
+- first card-status worker scaffold with Supabase persistence
+- snapshot reader command for latest owners/cards/audit rows
 
 Environment file:
 

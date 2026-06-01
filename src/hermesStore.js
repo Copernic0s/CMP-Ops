@@ -89,3 +89,17 @@ export const upsertOwnerAccessRows = async (supabase, rows) => {
 
   return { count: rows.length };
 };
+
+export const upsertCardStatusRows = async (supabase, rows) => {
+  if (!rows || rows.length === 0) return { count: 0 };
+
+  const { error } = await supabase
+    .from('cmp_card_status')
+    .upsert(rows, { onConflict: 'company_key,account_identifier' });
+
+  if (error) {
+    throw new Error(`Failed to upsert card status rows: ${error.message}`);
+  }
+
+  return { count: rows.length };
+};
