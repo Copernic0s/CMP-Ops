@@ -331,20 +331,24 @@ const findCurrentPaginationPage = async (page) => {
   return null;
 };
 
-const waitForActivePaginationPage = async (page, previousPageNumber, log) => {
+const waitForPaginationTransition = async (page, previousPageNumber, previousSignature, log) => {
   for (let attempt = 0; attempt < 24; attempt += 1) {
     await sleep(250);
     const currentPageNumber = await findCurrentPaginationPage(page);
+    const currentSignature = await getInventoryTableSignature(page);
     if (Number.isFinite(previousPageNumber) && currentPageNumber && currentPageNumber !== previousPageNumber) {
-      return currentPageNumber;
+      return { pageNumber: currentPageNumber, changed: true };
     }
     if (!Number.isFinite(previousPageNumber) && currentPageNumber) {
-      return currentPageNumber;
+      return { pageNumber: currentPageNumber, changed: true };
+    }
+    if (previousSignature && currentSignature && currentSignature !== previousSignature) {
+      return { pageNumber: currentPageNumber || null, changed: true };
     }
   }
 
-  log('pagination click did not update the active page');
-  return null;
+  log('pagination click did not update the active page or table body');
+  return { pageNumber: null, changed: false };
 };
 
 const findVisiblePaginationPageButtons = async (page) => {
@@ -439,6 +443,7 @@ const clickNextPage = async (page, log) => {
   const currentPageNumber = await findCurrentPaginationPage(page);
   const numericButtons = await findVisiblePaginationPageButtons(page);
   const preferredTarget = Number.isFinite(currentPageNumber) ? currentPageNumber + 1 : null;
+  const currentSignature = await getInventoryTableSignature(page);
 
   let numericCandidate = null;
   if (preferredTarget) {
@@ -453,10 +458,14 @@ const clickNextPage = async (page, log) => {
     const disabled = await numericCandidate.candidate.isDisabled().catch(() => true);
     if (!disabled) {
       await numericCandidate.candidate.scrollIntoViewIfNeeded().catch(() => {});
-      await numericCandidate.candidate.click({ timeoutMs: 15000 });
-      const activePage = await waitForActivePaginationPage(page, currentPageNumber, log);
-      if (activePage) {
-        log(`active page is now ${activePage}`);
+      await numericCandidate.candidate.click({ timeoutMs: 15000, force: true });
+      const transition = await waitForPaginationTransition(page, currentPageNumber, currentSignature, log);
+      if (transition.changed) {
+        if (transition.pageNumber) {
+          log(`active page is now ${transition.pageNumber}`);
+        } else {
+          log('inventory table body changed after numeric page click');
+        }
         return true;
       }
       log(`numeric page ${numericCandidate.pageNumber} did not advance the table`);
@@ -494,9 +503,9 @@ const clickNextPage = async (page, log) => {
 
   log('clicking next pagination control');
   await nextButton.scrollIntoViewIfNeeded().catch(() => {});
-  await nextButton.click({ timeoutMs: 15000 });
-  const activePage = await waitForActivePaginationPage(page, currentPageNumber, log);
-  return Boolean(activePage);
+  await nextButton.click({ timeoutMs: 15000, force: true });
+  const transition = await waitForPaginationTransition(page, currentPageNumber, currentSignature, log);
+  return Boolean(transition.changed);
 };
 
 export const captureCardInventory = async (options = {}) => {
