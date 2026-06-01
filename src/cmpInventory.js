@@ -282,6 +282,7 @@ export const captureCardInventory = async (options = {}) => {
   const maxPages = Number(process.env.HERMES_INVENTORY_MAX_PAGES || 500);
 
   for (let pageIndex = 0; pageIndex < maxPages; pageIndex += 1) {
+    await waitForInventoryTable(activePage, log);
     const headers = await gatherTableHeaders(activePage);
     log(`reading page ${pageIndex + 1} with ${headers.length} headers`);
     const pageRows = await extractRowsFromPage(activePage, headers);
