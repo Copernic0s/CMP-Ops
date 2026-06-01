@@ -248,14 +248,97 @@ const waitForInventoryShell = async (page, log) => {
 };
 
 const findPaginationButton = async (page) => {
-  const buttons = await page.getByRole('button', { name: /next/i }).all().catch(() => []);
-  for (let index = buttons.length - 1; index >= 0; index -= 1) {
-    const candidate = buttons[index];
-    const visible = await candidate.isVisible().catch(() => false);
-    if (visible) return candidate;
+  const candidates = await Promise.all([
+    page.getByRole('button', { name: /next/i }).all().catch(() => []),
+    page.locator('button', { hasText: /next/i }).all().catch(() => []),
+    page.locator('button').filter({ hasText: /next/i }).all().catch(() => [])
+  ]);
+
+  for (const bucket of candidates) {
+    for (let index = bucket.length - 1; index >= 0; index -= 1) {
+      const candidate = bucket[index];
+      const visible = await candidate.isVisible().catch(() => false);
+      if (visible) return candidate;
+    }
   }
 
   return null;
+};
+
+const getVisibleButtonLabel = async (candidate) => {
+  const ariaLabel = String(await candidate.getAttribute('aria-label').catch(() => '') || '').trim();
+  const text = String(await candidate.innerText().catch(() => '') || '').trim();
+  return ariaLabel || text;
+};
+
+const findCurrentPaginationPage = async (page) => {
+  const candidates = await page
+    .locator('button[aria-current="page"], button[data-state="active"]')
+    .filter({ hasText: /^\d+$/ })
+    .all()
+    .catch(() => []);
+
+  for (const candidate of candidates) {
+    const visible = await candidate.isVisible().catch(() => false);
+    if (!visible) continue;
+    const text = String(await candidate.textContent().catch(() => '') || '').trim();
+    const pageNumber = Number(text);
+    if (Number.isFinite(pageNumber) && pageNumber > 0) {
+      return pageNumber;
+    }
+  }
+
+  return null;
+};
+
+const findVisiblePaginationPageButtons = async (page) => {
+  const buttons = await page.locator('button').all().catch(() => []);
+  const results = [];
+
+  for (const candidate of buttons) {
+    const visible = await candidate.isVisible().catch(() => false);
+    if (!visible) continue;
+
+    const label = String(await getVisibleButtonLabel(candidate).catch(() => '') || '').trim();
+    if (!/^\d+$/.test(label)) continue;
+
+    const pageNumber = Number(label);
+    if (!Number.isFinite(pageNumber) || pageNumber <= 0) continue;
+    results.push({ candidate, pageNumber });
+  }
+
+  results.sort((left, right) => left.pageNumber - right.pageNumber);
+  return results;
+};
+
+const findPaginationPageButton = async (page, targetPageNumber) => {
+  if (!Number.isFinite(targetPageNumber) || targetPageNumber <= 0) return null;
+  const label = new RegExp(`^${targetPageNumber}$`);
+  const candidates = await page.getByRole('button', { name: label }).all().catch(() => []);
+  for (const candidate of candidates) {
+    const visible = await candidate.isVisible().catch(() => false);
+    if (visible) return candidate;
+  }
+  return null;
+};
+
+const getInventoryTableSignature = async (page) => {
+  const bodyText = String(await page.locator('table tbody').innerText().catch(() => '') || '').trim();
+  const rowCount = await page.locator('table tbody tr').count().catch(() => 0);
+  return `${rowCount}:${bodyText.slice(0, 240)}`;
+};
+
+const waitForInventoryPageChange = async (page, previousSignature, log) => {
+  for (let attempt = 0; attempt < 24; attempt += 1) {
+    await sleep(250);
+    const currentSignature = await getInventoryTableSignature(page);
+    if (currentSignature && currentSignature !== previousSignature) {
+      return true;
+    }
+  }
+
+  log('pagination click did not change the table body');
+  return false;
 };
 
 const extractRowsFromPage = async (page, headers) => {
@@ -285,27 +368,51 @@ const extractRowsFromPage = async (page, headers) => {
   return results;
 };
 
-const clickNextPage = async (page) => {
-  const nextButton = await findPaginationButton(page);
-  if (!nextButton) return false;
+const clickNextPage = async (page, log) => {
+  const currentPageNumber = await findCurrentPaginationPage(page);
+  const currentSignature = await getInventoryTableSignature(page);
+  const numericButtons = await findVisiblePaginationPageButtons(page);
+  const preferredTarget = Number.isFinite(currentPageNumber) ? currentPageNumber + 1 : null;
 
-  const disabled = await nextButton.isDisabled().catch(() => true);
-  if (disabled) return false;
+  let numericCandidate = null;
+  if (preferredTarget) {
+    numericCandidate = numericButtons.find(({ pageNumber }) => pageNumber === preferredTarget) || null;
+  }
+  if (!numericCandidate) {
+    numericCandidate = numericButtons.find(({ pageNumber }) => pageNumber > (Number.isFinite(currentPageNumber) ? currentPageNumber : 1)) || null;
+  }
 
-  const previousRange = String(await page.locator('body').innerText().catch(() => '') || '').match(/\b\d+-\d+ of \d+ items\b/i)?.[0] || '';
-  await nextButton.click({ timeoutMs: 15000 });
-  for (let i = 0; i < 20; i += 1) {
-    await sleep(500);
-    const bodyText = String(await page.locator('body').innerText().catch(() => '') || '');
-    const currentRange = bodyText.match(/\b\d+-\d+ of \d+ items\b/i)?.[0] || '';
-    const rowCount = await page.locator('table tbody tr').count().catch(() => 0);
-    const hasPlaceholder = /nothing found/i.test(bodyText);
-    if (currentRange && currentRange !== previousRange && rowCount > 1 && !hasPlaceholder) {
-      return true;
+  if (numericCandidate) {
+    log(`clicking numeric page ${numericCandidate.pageNumber}`);
+    const disabled = await numericCandidate.candidate.isDisabled().catch(() => true);
+    if (!disabled) {
+      await numericCandidate.candidate.scrollIntoViewIfNeeded().catch(() => {});
+      await numericCandidate.candidate.click({ timeoutMs: 15000 });
+      if (await waitForInventoryPageChange(page, currentSignature, log)) {
+        return true;
+      }
+      log(`numeric page ${numericCandidate.pageNumber} did not advance the table`);
+    } else {
+      log(`numeric page ${numericCandidate.pageNumber} is disabled`);
     }
   }
 
-  return true;
+  const nextButton = await findPaginationButton(page);
+  if (!nextButton) {
+    log('pagination button not found');
+    return false;
+  }
+
+  const disabled = await nextButton.isDisabled().catch(() => true);
+  if (disabled) {
+    log('pagination button is disabled');
+    return false;
+  }
+
+  log('clicking next pagination control');
+  await nextButton.scrollIntoViewIfNeeded().catch(() => {});
+  await nextButton.click({ timeoutMs: 15000 });
+  return waitForInventoryPageChange(page, currentSignature, log);
 };
 
 export const captureCardInventory = async (options = {}) => {
@@ -396,7 +503,7 @@ export const captureCardInventory = async (options = {}) => {
       });
     }
 
-    const advanced = await clickNextPage(activePage);
+    const advanced = await clickNextPage(activePage, log);
     if (!advanced) {
       log('pagination ended');
       break;
