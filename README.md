@@ -43,3 +43,8 @@ Environment file:
 
 - copy [`.env.example`](C:/Users/AndresMendez/Documents/Debors-Clean/CMP-Ops/.env.example) into `.env`
 - fill in Chrome, CMP, and Supabase credentials before running the owners sync
+
+Database bootstrap:
+
+- run [supabase/bootstrap.sql](C:/Users/AndresMendez/Documents/Debors-Clean/CMP-Ops/supabase/bootstrap.sql) once in the Supabase SQL editor
+- that creates the owners, card status, inventory, and audit tables together
