@@ -4,6 +4,7 @@ import {
   loadHermesCompanySnapshot,
   loadHermesSnapshot,
   loadHermesTableSnapshot,
+  searchHermesCards,
   searchHermesCompanies
 } from './hermesRead.js';
 
@@ -100,7 +101,7 @@ export const createHermesApiServer = ({ supabase, mode = process.env.HERMES_MODE
           ok: true,
           service: 'hermes',
           mode,
-          routes: ['/health', '/dashboard', '/companies', '/snapshot', '/snapshot/:table', '/company/:companyKey']
+          routes: ['/health', '/dashboard', '/companies', '/cards', '/snapshot', '/snapshot/:table', '/company/:companyKey']
         });
         return;
       }
@@ -128,6 +129,18 @@ export const createHermesApiServer = ({ supabase, mode = process.env.HERMES_MODE
           query,
           count: companies.length,
           results: companies
+        });
+        return;
+      }
+
+      if (route === 'cards') {
+        const query = String(requestUrl.searchParams.get('q') || requestUrl.searchParams.get('query') || '').trim();
+        const cards = await searchHermesCards(supabase, query, { limit });
+        writeJson(res, 200, {
+          ok: true,
+          query,
+          count: cards.length,
+          results: cards
         });
         return;
       }

@@ -53,7 +53,8 @@ Environment file:
 - if you want Hermes to reuse another profile, set `HERMES_CHROME_FORCE_RESTART=true` only when you are okay with that profile being restarted with the debugger port
 - Hermes exposes a local read API on `127.0.0.1:3333` by default; run `npm run api` after filling the Supabase env vars to serve health and snapshot endpoints
 - the API also exposes `GET /company/:companyKey` or `GET /company?companyKey=...` for a merged company view, with passwords hidden unless `revealPassword=true`
-- the API serves a small browser dashboard at `GET /dashboard` for company search and merged snapshot review
+- the API also exposes `GET /cards?q=...` for global card-number or company lookup
+- the API serves a browser dashboard at `GET /dashboard` for company search, card search, and merged snapshot review
 
 Database bootstrap:
 

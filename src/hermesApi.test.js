@@ -31,6 +31,9 @@ const createMockSupabase = () => {
       return {
         select() {
           return {
+            or() {
+              return this;
+            },
             ilike() {
               return this;
             },
@@ -105,6 +108,13 @@ test('Hermes API serves health and snapshots', async () => {
     assert.equal(companyList.ok, true);
     assert.equal(companyList.count, 1);
     assert.equal(companyList.results[0].companyKey, 'allstatecargo');
+
+    const cardListResponse = await fetch(`${baseUrl}/cards?q=708305&limit=5`);
+    assert.equal(cardListResponse.status, 200);
+    const cardList = await cardListResponse.json();
+    assert.equal(cardList.ok, true);
+    assert.equal(cardList.count, 1);
+    assert.equal(cardList.results[0].table, 'cmp_card_inventory');
 
     const dashboardResponse = await fetch(`${baseUrl}/dashboard`);
     assert.equal(dashboardResponse.status, 200);

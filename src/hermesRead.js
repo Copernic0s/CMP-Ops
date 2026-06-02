@@ -133,6 +133,44 @@ const mergeCompanyCandidates = (lists = [], limit = 10) => {
   return merged;
 };
 
+const escapeSupabaseLike = (value) =>
+  String(value || '')
+    .trim()
+    .replace(/[%_]/g, (character) => `\\${character}`)
+    .replace(/\s+/g, ' ');
+
+export const searchHermesCards = async (supabase, query = '', { limit = 12 } = {}) => {
+  if (!supabase) {
+    throw new Error('Supabase client is required to search Hermes cards');
+  }
+
+  const normalizedQuery = String(query || '').trim();
+  const searchPattern = `%${escapeSupabaseLike(normalizedQuery)}%`;
+
+  let builder = supabase
+    .from('cmp_card_inventory')
+    .select('company_key,company_name,organization,efs_account,account_identifier,card_number,company_status,card_status,last_used_date,last_synced_at');
+
+  if (normalizedQuery) {
+    builder = builder.or([
+      `card_number.ilike.${searchPattern}`,
+      `company_name.ilike.${searchPattern}`,
+      `company_key.ilike.${searchPattern}`,
+      `organization.ilike.${searchPattern}`,
+      `efs_account.ilike.${searchPattern}`
+    ].join(','));
+  }
+
+  builder = builder.order('last_synced_at', { ascending: false }).limit(limit);
+
+  const { data, error } = await builder;
+  if (error) {
+    throw new Error(`Failed to search cmp_card_inventory: ${error.message}`);
+  }
+
+  return data || [];
+};
+
 export const loadHermesCompanySnapshot = async (
   supabase,
   companyKey,
