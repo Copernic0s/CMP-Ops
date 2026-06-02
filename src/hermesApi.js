@@ -1,5 +1,11 @@
 import http from 'node:http';
-import { loadHermesCompanySnapshot, loadHermesSnapshot, loadHermesTableSnapshot } from './hermesRead.js';
+import { buildHermesDashboardHtml } from './hermesDashboard.js';
+import {
+  loadHermesCompanySnapshot,
+  loadHermesSnapshot,
+  loadHermesTableSnapshot,
+  searchHermesCompanies
+} from './hermesRead.js';
 
 const DEFAULT_API_PORT = 3333;
 const DEFAULT_API_HOST = '127.0.0.1';
@@ -17,6 +23,14 @@ const parseLimit = (value) => {
   const parsed = Number(value);
   if (!Number.isFinite(parsed) || parsed <= 0) return 20;
   return Math.min(Math.floor(parsed), 100);
+};
+
+const writeHtml = (res, statusCode, body) => {
+  res.writeHead(statusCode, {
+    'content-type': 'text/html; charset=utf-8',
+    'cache-control': 'no-store'
+  });
+  res.end(body);
 };
 
 const getRouteSnapshot = async (supabase, route, limit) => {
@@ -86,7 +100,7 @@ export const createHermesApiServer = ({ supabase, mode = process.env.HERMES_MODE
           ok: true,
           service: 'hermes',
           mode,
-          routes: ['/health', '/snapshot', '/snapshot/:table', '/company/:companyKey']
+          routes: ['/health', '/dashboard', '/companies', '/snapshot', '/snapshot/:table', '/company/:companyKey']
         });
         return;
       }
@@ -97,6 +111,23 @@ export const createHermesApiServer = ({ supabase, mode = process.env.HERMES_MODE
           service: 'hermes',
           mode,
           timestamp: new Date().toISOString()
+        });
+        return;
+      }
+
+      if (route === 'dashboard' || route === 'ui') {
+        writeHtml(res, 200, buildHermesDashboardHtml());
+        return;
+      }
+
+      if (route === 'companies') {
+        const query = String(requestUrl.searchParams.get('q') || requestUrl.searchParams.get('query') || '').trim();
+        const companies = await searchHermesCompanies(supabase, query, { limit });
+        writeJson(res, 200, {
+          ok: true,
+          query,
+          count: companies.length,
+          results: companies
         });
         return;
       }

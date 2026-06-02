@@ -4,7 +4,7 @@
 
 - [ ] Verify the Hermes read API against the live Supabase project with automatic `.env` loading
 - [ ] Verify the merged company endpoint against the live Supabase project
-- [ ] Decide whether Hermes should expose a tiny dashboard or stay API-first
+- [ ] Verify the dashboard route against the live Supabase project and tune the tables if needed
 - [ ] Keep the inventory checkpoint workflow available for future resyncs
 
 ## Done
@@ -17,6 +17,7 @@
 - [x] Add local Hermes read API for health and snapshot routes
 - [x] Add merged company endpoint for owner access, card status, and inventory reads
 - [x] Auto-load `.env` at startup for Supabase and Hermes credentials
+- [x] Add browser dashboard for company lookup and merged snapshot review
 
 ## Notes
 

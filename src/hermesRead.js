@@ -94,6 +94,45 @@ const maskOwnerPassword = (row, revealPassword) => ({
   password_hidden: !revealPassword
 });
 
+const readCompanyCandidates = async (supabase, table, { query = '', limit = 10 } = {}) => {
+  let builder = supabase
+    .from(table)
+    .select('company_key,company_name,last_synced_at');
+
+  builder = builder.order('last_synced_at', { ascending: false }).limit(limit);
+
+  const { data, error } = await builder;
+  if (error) {
+    throw new Error(`Failed to search ${table}: ${error.message}`);
+  }
+
+  return data || [];
+};
+
+const mergeCompanyCandidates = (lists = [], limit = 10) => {
+  const seen = new Set();
+  const merged = [];
+
+  for (const list of lists) {
+    for (const row of list || []) {
+      const companyKey = normalizeCompanyKey(row?.company_key || row?.company_name || '');
+      if (!companyKey || seen.has(companyKey)) continue;
+      seen.add(companyKey);
+      merged.push({
+        companyKey,
+        companyName: String(row?.company_name || row?.company_key || '').trim(),
+        lastSyncedAt: row?.last_synced_at || null
+      });
+
+      if (merged.length >= limit) {
+        return merged;
+      }
+    }
+  }
+
+  return merged;
+};
+
 export const loadHermesCompanySnapshot = async (
   supabase,
   companyKey,
@@ -148,4 +187,34 @@ export const loadHermesCompanySnapshot = async (
       cardInventoryCount: cardInventory.length
     }
   };
+};
+
+export const searchHermesCompanies = async (supabase, query = '', { limit = 10 } = {}) => {
+  if (!supabase) {
+    throw new Error('Supabase client is required to search Hermes companies');
+  }
+
+  const normalizedQuery = String(query || '').trim();
+  const normalizedQueryKey = normalizeCompanyKey(normalizedQuery);
+
+  const [ownerAccess, cardStatus, cardInventory] = await Promise.all([
+    readCompanyCandidates(supabase, 'cmp_owner_access', { limit: Math.max(limit * 4, 20) }),
+    readCompanyCandidates(supabase, 'cmp_card_status', { limit: Math.max(limit * 4, 20) }),
+    readCompanyCandidates(supabase, 'cmp_card_inventory', { limit: Math.max(limit * 4, 20) })
+  ]);
+
+  const merged = mergeCompanyCandidates([ownerAccess, cardStatus, cardInventory], Math.max(limit * 4, 20));
+  if (!normalizedQuery) {
+    return merged.slice(0, limit);
+  }
+
+  const searchText = normalizedQuery.toLowerCase();
+  const searchKey = normalizedQueryKey.toLowerCase();
+  return merged
+    .filter((item) => {
+      const companyName = String(item.companyName || '').toLowerCase();
+      const companyKey = String(item.companyKey || '').toLowerCase();
+      return companyName.includes(searchText) || companyKey.includes(searchText) || companyKey.includes(searchKey);
+    })
+    .slice(0, limit);
 };

@@ -10,6 +10,7 @@
 - Hermes now exposes a local read API for health and snapshot routes.
 - Hermes now exposes a merged company read endpoint that joins owner access, card status, and inventory data.
 - Hermes auto-loads `.env` at startup, so Supabase credentials no longer depend on manual PowerShell export.
+- Hermes now serves a local dashboard at `/dashboard` for company lookup and merged snapshots.
 - `AGENT.md` already exists and remains the repo-wide operating guide.
 
 ## What Works
@@ -24,6 +25,7 @@
 - local Hermes API for health and snapshot reads
 - company-level Hermes endpoint with password masking by default
 - automatic `.env` loading on boot
+- local dashboard for company search and merged data review
 
 ## What Broke Recently
 
@@ -43,5 +45,5 @@
 
 - verify the API health and snapshot routes against Supabase data
 - verify the company endpoint against real Supabase data and password reveal rules
-- decide the next read surface: CLI summary or small UI
+- verify the dashboard route in the browser and decide whether it needs filters or tables tightened up
 - keep using the inventory checkpoint workflow instead of re-running from page 1

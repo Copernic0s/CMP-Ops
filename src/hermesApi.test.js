@@ -31,6 +31,9 @@ const createMockSupabase = () => {
       return {
         select() {
           return {
+            ilike() {
+              return this;
+            },
             eq() {
               return this;
             },
@@ -86,7 +89,7 @@ test('Hermes API serves health and snapshots', async () => {
     const inventory = await inventoryResponse.json();
     assert.equal(inventory[0].table, 'cmp_card_inventory');
 
-    const companyResponse = await fetch(`${baseUrl}/company/${encodeURIComponent('Allstate Cargo Co')}?limit=2`);
+      const companyResponse = await fetch(`${baseUrl}/company/${encodeURIComponent('Allstate Cargo Co')}?limit=2`);
     assert.equal(companyResponse.status, 200);
     const company = await companyResponse.json();
     assert.equal(company.ok, true);
@@ -95,6 +98,17 @@ test('Hermes API serves health and snapshots', async () => {
     assert.equal(company.ownerAccess[0].password_ciphertext, null);
     assert.equal(company.ownerAccess[0].password_hidden, true);
     assert.equal(company.summary.ownerAccessCount, 1);
+
+    const companyListResponse = await fetch(`${baseUrl}/companies?q=Allstate&limit=5`);
+    assert.equal(companyListResponse.status, 200);
+    const companyList = await companyListResponse.json();
+    assert.equal(companyList.ok, true);
+    assert.equal(companyList.count, 1);
+    assert.equal(companyList.results[0].companyKey, 'allstatecargo');
+
+    const dashboardResponse = await fetch(`${baseUrl}/dashboard`);
+    assert.equal(dashboardResponse.status, 200);
+    assert.match(await dashboardResponse.text(), /Hermes Console/);
   } finally {
     await new Promise((resolve) => server.close(resolve));
   }
