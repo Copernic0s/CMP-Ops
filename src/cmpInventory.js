@@ -13,6 +13,7 @@ const DEFAULT_SEARCH_TEXTS = ['Search', 'Search...', 'Search card', 'Search card
 const DEFAULT_NEXT_TEXTS = ['Next', '>', '›', 'Next >', 'Next ›'];
 const DEFAULT_INVENTORY_PATH = '/company-account-cards';
 const DEFAULT_PAGE_SIZE = 100;
+const DEFAULT_START_PAGE = 1;
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -70,6 +71,12 @@ const resolveInventoryPageSize = (env = process.env) => {
   if (requested >= 50) return 50;
   if (requested >= 20) return 20;
   return 10;
+};
+
+const resolveInventoryStartPage = (env = process.env) => {
+  const requested = Number(env.HERMES_INVENTORY_START_PAGE || DEFAULT_START_PAGE);
+  if (!Number.isFinite(requested) || requested < 1) return 1;
+  return Math.floor(requested);
 };
 
 const findInventoryNavigation = async (page) => {
@@ -311,6 +318,37 @@ const findPaginationScope = async (page) => {
   return null;
 };
 
+const findGoToPageInput = async (page) => {
+  const scope = await findPaginationScope(page);
+  const roots = scope ? [scope, page] : [page];
+  const candidates = [];
+
+  for (const root of roots) {
+    candidates.push(
+      ...await root.getByRole('spinbutton').all().catch(() => []),
+      ...await root.getByRole('textbox', { name: /go to/i }).all().catch(() => []),
+      ...await root.locator('input').all().catch(() => [])
+    );
+  }
+
+  for (const candidate of candidates) {
+    const visible = await candidate.isVisible().catch(() => false);
+    if (!visible) continue;
+
+    const label = String(await getVisibleButtonLabel(candidate).catch(() => '') || '').trim();
+    const placeholder = String(await candidate.getAttribute('placeholder').catch(() => '') || '').trim();
+    const ariaLabel = String(await candidate.getAttribute('aria-label').catch(() => '') || '').trim();
+    const value = String(await candidate.inputValue().catch(() => '') || '').trim();
+    const combined = `${label} ${placeholder} ${ariaLabel} ${value}`.toLowerCase();
+
+    if (combined.includes('go to')) {
+      return candidate;
+    }
+  }
+
+  return null;
+};
+
 const findCurrentPaginationPage = async (page) => {
   const candidates = await page
     .locator('button[aria-current="page"], button[data-state="active"]')
@@ -367,6 +405,39 @@ const findCurrentPageFromFooter = async (page, pageSize) => {
   if (!Number.isFinite(size) || size <= 0) return null;
 
   return Math.max(1, Math.ceil(range.start / size));
+};
+
+const jumpToInventoryPage = async (page, targetPage, log) => {
+  const desiredPage = Number(targetPage);
+  if (!Number.isFinite(desiredPage) || desiredPage < 1) return false;
+
+  const input = await findGoToPageInput(page);
+  if (!input) {
+    log('go to page control not found');
+    return false;
+  }
+
+  const previousSignature = await getInventoryTableSignature(page);
+  log(`jumping directly to page ${desiredPage}`);
+  await input.scrollIntoViewIfNeeded().catch(() => {});
+  await input.click({ timeoutMs: 10000 }).catch(() => {});
+  await input.press('Control+A').catch(() => {});
+  await input.press('Backspace').catch(() => {});
+  await input.type(String(desiredPage), { delay: 20 }).catch(() => {});
+  await input.press('Enter').catch(() => {});
+
+  const transition = await waitForPaginationTransition(page, desiredPage - 1, previousSignature, log);
+  if (transition.changed) {
+    if (transition.pageNumber) {
+      log(`active page is now ${transition.pageNumber}`);
+    } else {
+      log(`inventory table changed after jump to page ${desiredPage}`);
+    }
+    return true;
+  }
+
+  log(`jump to page ${desiredPage} did not change the table`);
+  return false;
 };
 
 const waitForPaginationTransition = async (page, previousPageNumber, previousSignature, log) => {
@@ -606,19 +677,29 @@ export const captureCardInventory = async (options = {}) => {
   }
 
   const desiredPageSize = resolveInventoryPageSize(process.env);
+  const startPage = resolveInventoryStartPage(process.env);
   await setInventoryPageSize(activePage, desiredPageSize, log);
   await waitForInventoryTable(activePage, log);
+
+  if (startPage > 1) {
+    const jumped = await jumpToInventoryPage(activePage, startPage, log);
+    if (!jumped) {
+      log(`could not jump directly to page ${startPage}, continuing from current page`);
+    }
+    await waitForInventoryTable(activePage, log);
+  }
 
   const rows = [];
   const seen = new Set();
   const maxPages = Number(process.env.HERMES_INVENTORY_MAX_PAGES || 500);
 
   for (let pageIndex = 0; pageIndex < maxPages; pageIndex += 1) {
+    const currentLogicalPage = startPage + pageIndex;
     await waitForInventoryTable(activePage, log);
     const headers = await gatherTableHeaders(activePage);
-    log(`reading page ${pageIndex + 1} with ${headers.length} headers`);
+    log(`reading page ${currentLogicalPage} with ${headers.length} headers`);
     const pageRows = await extractRowsFromPage(activePage, headers);
-    log(`found ${pageRows.length} visible rows on page ${pageIndex + 1}`);
+    log(`found ${pageRows.length} visible rows on page ${currentLogicalPage}`);
 
     for (const row of pageRows) {
       const key = String(row.cardNumber || '').trim();
@@ -628,7 +709,7 @@ export const captureCardInventory = async (options = {}) => {
         ...row,
         source: 'cmp',
         source_metadata: {
-          page_index: pageIndex + 1,
+          page_index: currentLogicalPage,
           row_cells: row.rowCells || [],
           row_summary: row.rowSummary || ''
         }
@@ -640,7 +721,7 @@ export const captureCardInventory = async (options = {}) => {
       log('pagination ended');
       break;
     }
-    log(`advanced to next page after ${pageIndex + 1}`);
+    log(`advanced to next page after ${currentLogicalPage}`);
   }
 
   log(`inventory crawl complete with ${rows.length} unique card rows`);

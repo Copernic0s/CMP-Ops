@@ -6,6 +6,7 @@
 - Chrome is isolated in a dedicated Hermes profile directory.
 - Supabase bootstrap tables exist and inventory writes are filtered by portfolio.
 - The inventory worker currently crawls the `company-account-cards` page and captures only rows that match the current portfolio.
+- The inventory worker now supports a resume point and the local config starts from page 500.
 - `AGENT.md` already exists and remains the repo-wide operating guide.
 
 ## What Works

@@ -5,6 +5,7 @@
 - [ ] Stabilize inventory pagination so the worker reliably reaches page 2 and beyond
 - [ ] Confirm the exact `Next` footer button in CMP across a few pages
 - [ ] Validate whether `100 per page` is the best stable setting for repeated syncs
+- [ ] Resume the inventory crawl from page 500 and verify the footer jump works consistently
 - [ ] Check why some runs return `matchedRecords: 0` even when the portfolio should match
 - [ ] Decide whether to keep the full crawl or move to a lighter targeted path
 
