@@ -46,6 +46,7 @@ Environment file:
 - copy [`.env.example`](C:/Users/AndresMendez/Documents/Debors-Clean/CMP-Ops/.env.example) into `.env`
 - fill in Chrome, CMP, and Supabase credentials before running the workers
 - Hermes uses a dedicated Chrome data dir so it does not disturb your normal sessions
+- Hermes auto-loads a local `.env` file on startup, so you do not need to export variables manually in PowerShell
 - the default local setup points Chrome at `User Data Hermes` with `Default` profile
 - on first run, that dedicated profile is clean; sign into CMP once there and Hermes can reuse it afterward
 - CMP only exposes 10, 20, 50, and 100 rows per page; Hermes uses 100 to reduce the crawl count as much as the UI allows

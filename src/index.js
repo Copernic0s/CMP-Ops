@@ -1,20 +1,24 @@
 import { DEFAULT_PORTFOLIO_SHEET_NAME, DEFAULT_PORTFOLIO_SOURCE_URL, loadPortfolioFromSource } from './portfolio.js';
 import { captureOwnerAccessForCompany } from './cmpOwners.js';
 import { startHermesApi } from './hermesApi.js';
+import { loadLocalEnvFile } from './env.js';
 import { createHermesSupabaseClient } from './hermesStore.js';
 import { loadHermesSnapshot } from './hermesRead.js';
 import { runCardInventorySync, runCardStatusSync, runOwnersSync } from './hermesSync.js';
 
 const boot = async () => {
+  const envLoad = loadLocalEnvFile();
   const mode = String(process.env.HERMES_MODE || 'dev').trim();
   const sourceUrl = String(process.env.HERMES_ZOHO_XLSX_URL || DEFAULT_PORTFOLIO_SOURCE_URL).trim();
   const sheetName = String(process.env.HERMES_ZOHO_SHEET_NAME || DEFAULT_PORTFOLIO_SHEET_NAME).trim();
   const command = String(process.argv[2] || 'boot').trim();
-  const needsPortfolio = ['boot', 'owners', 'cards', 'inventory'].includes(command);
 
   console.log(`[Hermes] booting in ${mode} mode`);
   console.log(`[Hermes] portfolio source: ${sheetName}`);
   console.log('[Hermes] workers: portfolio loader, CMP access, CMP card status, audit writer');
+  if (envLoad.loaded) {
+    console.log(`[Hermes] loaded env file ${envLoad.path} (${envLoad.loadedCount} vars)`);
+  }
 
   try {
     if (command === 'owners') {
@@ -91,12 +95,6 @@ const boot = async () => {
         mode
       });
       return;
-    } else if (needsPortfolio) {
-      const portfolio = await loadPortfolioFromSource({
-        sourceUrl,
-        desiredSheetName: sheetName
-      });
-      console.log(`[Hermes] loaded ${portfolio.companies.length} companies from ${portfolio.sheetName}`);
     }
 
     console.log('[Hermes] ready for the first orchestration layer');

@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { loadLocalEnvFile } from './env.js';
 
 export const resolveSupabaseSettings = (env = process.env) => {
   const url = String(env.HERMES_SUPABASE_URL || env.SUPABASE_URL || env.VITE_SUPABASE_URL || '').trim();
@@ -17,6 +18,7 @@ export const resolveSupabaseSettings = (env = process.env) => {
 };
 
 export const createHermesSupabaseClient = (env = process.env) => {
+  loadLocalEnvFile();
   const settings = resolveSupabaseSettings(env);
   if (!settings.url || !settings.serviceKey) {
     throw new Error('Supabase service credentials are required for Hermes persistence');

@@ -9,6 +9,7 @@
 - The inventory worker now supports a resume point and the local config starts from page 500.
 - Hermes now exposes a local read API for health and snapshot routes.
 - Hermes now exposes a merged company read endpoint that joins owner access, card status, and inventory data.
+- Hermes auto-loads `.env` at startup, so Supabase credentials no longer depend on manual PowerShell export.
 - `AGENT.md` already exists and remains the repo-wide operating guide.
 
 ## What Works
@@ -22,6 +23,7 @@
 - filtering of inventory rows by portfolio before write
 - local Hermes API for health and snapshot reads
 - company-level Hermes endpoint with password masking by default
+- automatic `.env` loading on boot
 
 ## What Broke Recently
 
