@@ -1,5 +1,5 @@
 import http from 'node:http';
-import { loadHermesSnapshot, loadHermesTableSnapshot } from './hermesRead.js';
+import { loadHermesCompanySnapshot, loadHermesSnapshot, loadHermesTableSnapshot } from './hermesRead.js';
 
 const DEFAULT_API_PORT = 3333;
 const DEFAULT_API_HOST = '127.0.0.1';
@@ -39,6 +39,32 @@ const getRouteSnapshot = async (supabase, route, limit) => {
   return loadHermesSnapshot(supabase, { limit });
 };
 
+const getCompanyRouteSnapshot = async (supabase, requestUrl) => {
+  const companyKey = String(
+    requestUrl.searchParams.get('companyKey') ||
+    requestUrl.searchParams.get('company') ||
+    requestUrl.searchParams.get('q') ||
+    ''
+  ).trim();
+
+  const revealPassword = String(requestUrl.searchParams.get('revealPassword') || '').toLowerCase() === 'true';
+  const limit = parseLimit(requestUrl.searchParams.get('limit'));
+
+  if (!companyKey) {
+    throw new Error('companyKey is required');
+  }
+
+  return loadHermesCompanySnapshot(supabase, companyKey, { limit, revealPassword });
+};
+
+const safeDecodePathSegment = (value) => {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+};
+
 export const createHermesApiServer = ({ supabase, mode = process.env.HERMES_MODE || 'dev' } = {}) => {
   if (!supabase) {
     throw new Error('Supabase client is required to start the Hermes API');
@@ -60,7 +86,7 @@ export const createHermesApiServer = ({ supabase, mode = process.env.HERMES_MODE
           ok: true,
           service: 'hermes',
           mode,
-          routes: ['/health', '/snapshot', '/snapshot/:table']
+          routes: ['/health', '/snapshot', '/snapshot/:table', '/company/:companyKey']
         });
         return;
       }
@@ -86,6 +112,28 @@ export const createHermesApiServer = ({ supabase, mode = process.env.HERMES_MODE
         const table = route.slice('snapshot/'.length).trim().toLowerCase();
         const snapshot = await getRouteSnapshot(supabase, table, limit);
         writeJson(res, 200, snapshot);
+        return;
+      }
+
+      if (route === 'company') {
+        const snapshot = await getCompanyRouteSnapshot(supabase, requestUrl);
+        writeJson(res, 200, {
+          ok: true,
+          ...snapshot
+        });
+        return;
+      }
+
+      if (route.startsWith('company/')) {
+        const companyKey = safeDecodePathSegment(route.slice('company/'.length).trim());
+        const snapshot = await loadHermesCompanySnapshot(supabase, companyKey, {
+          limit,
+          revealPassword: String(requestUrl.searchParams.get('revealPassword') || '').toLowerCase() === 'true'
+        });
+        writeJson(res, 200, {
+          ok: true,
+          ...snapshot
+        });
         return;
       }
 

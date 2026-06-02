@@ -39,6 +39,7 @@ Current implementation:
 - snapshot reader command for latest owners/cards/audit rows
 - company account cards inventory worker scaffold
 - small Hermes read API with health and snapshot routes
+- unified company endpoint that joins owner access, card status, and inventory reads
 
 Environment file:
 
@@ -50,6 +51,7 @@ Environment file:
 - CMP only exposes 10, 20, 50, and 100 rows per page; Hermes uses 100 to reduce the crawl count as much as the UI allows
 - if you want Hermes to reuse another profile, set `HERMES_CHROME_FORCE_RESTART=true` only when you are okay with that profile being restarted with the debugger port
 - Hermes exposes a local read API on `127.0.0.1:3333` by default; run `npm run api` after filling the Supabase env vars to serve health and snapshot endpoints
+- the API also exposes `GET /company/:companyKey` or `GET /company?companyKey=...` for a merged company view, with passwords hidden unless `revealPassword=true`
 
 Database bootstrap:
 

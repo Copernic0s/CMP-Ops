@@ -8,6 +8,7 @@
 - The inventory worker currently crawls the `company-account-cards` page and captures only rows that match the current portfolio.
 - The inventory worker now supports a resume point and the local config starts from page 500.
 - Hermes now exposes a local read API for health and snapshot routes.
+- Hermes now exposes a merged company read endpoint that joins owner access, card status, and inventory data.
 - `AGENT.md` already exists and remains the repo-wide operating guide.
 
 ## What Works
@@ -20,6 +21,7 @@
 - inventory page-size control at the UI limit of `100 per page`
 - filtering of inventory rows by portfolio before write
 - local Hermes API for health and snapshot reads
+- company-level Hermes endpoint with password masking by default
 
 ## What Broke Recently
 
@@ -38,5 +40,6 @@
 ## Next Checkpoints
 
 - verify the API health and snapshot routes against Supabase data
-- decide the next read surface: company-specific endpoint, CLI summary, or small UI
+- verify the company endpoint against real Supabase data and password reveal rules
+- decide the next read surface: CLI summary or small UI
 - keep using the inventory checkpoint workflow instead of re-running from page 1

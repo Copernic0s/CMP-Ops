@@ -4,9 +4,25 @@ import { createHermesApiServer } from './hermesApi.js';
 
 const createMockSupabase = () => {
   const tableData = {
-    cmp_owner_access: [{ table: 'cmp_owner_access', id: 1 }],
-    cmp_card_status: [{ table: 'cmp_card_status', id: 2 }],
-    cmp_card_inventory: [{ table: 'cmp_card_inventory', id: 3 }],
+    cmp_owner_access: [{
+      table: 'cmp_owner_access',
+      id: 1,
+      company_key: 'allstatecargo',
+      company_name: 'ALLSTATE CARGO CO',
+      password_ciphertext: 'secret'
+    }],
+    cmp_card_status: [{
+      table: 'cmp_card_status',
+      id: 2,
+      company_key: 'allstatecargo',
+      company_name: 'ALLSTATE CARGO CO'
+    }],
+    cmp_card_inventory: [{
+      table: 'cmp_card_inventory',
+      id: 3,
+      company_key: 'allstatecargo',
+      company_name: 'ALLSTATE CARGO CO'
+    }],
     cmp_sync_audit: [{ table: 'cmp_sync_audit', id: 4 }]
   };
 
@@ -15,6 +31,9 @@ const createMockSupabase = () => {
       return {
         select() {
           return {
+            eq() {
+              return this;
+            },
             order() {
               return {
                 limit() {
@@ -66,6 +85,16 @@ test('Hermes API serves health and snapshots', async () => {
     assert.equal(inventoryResponse.status, 200);
     const inventory = await inventoryResponse.json();
     assert.equal(inventory[0].table, 'cmp_card_inventory');
+
+    const companyResponse = await fetch(`${baseUrl}/company/${encodeURIComponent('Allstate Cargo Co')}?limit=2`);
+    assert.equal(companyResponse.status, 200);
+    const company = await companyResponse.json();
+    assert.equal(company.ok, true);
+    assert.equal(company.companyKey, 'allstatecargo');
+    assert.equal(company.companyName, 'ALLSTATE CARGO CO');
+    assert.equal(company.ownerAccess[0].password_ciphertext, null);
+    assert.equal(company.ownerAccess[0].password_hidden, true);
+    assert.equal(company.summary.ownerAccessCount, 1);
   } finally {
     await new Promise((resolve) => server.close(resolve));
   }

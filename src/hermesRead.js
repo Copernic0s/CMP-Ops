@@ -1,5 +1,16 @@
-const readTable = async (supabase, table, { limit = 20, orderBy = 'last_synced_at', ascending = false } = {}) => {
+import { normalizeCompanyKey } from './companyKey.js';
+
+const readTable = async (
+  supabase,
+  table,
+  { limit = 20, orderBy = 'last_synced_at', ascending = false, eqFilters = [] } = {}
+) => {
   let query = supabase.from(table).select('*');
+
+  for (const filter of eqFilters) {
+    if (!filter || !filter.column) continue;
+    query = query.eq(filter.column, filter.value);
+  }
 
   if (orderBy) {
     query = query.order(orderBy, { ascending });
@@ -66,5 +77,75 @@ export const loadHermesSnapshot = async (supabase, { limit = 20 } = {}) => {
     cardStatus,
     cardInventory,
     syncAudit
+  };
+};
+
+const getCompanyNameFromRows = (rows = [], fallback = '') => {
+  for (const row of rows) {
+    const companyName = String(row?.company_name || '').trim();
+    if (companyName) return companyName;
+  }
+  return String(fallback || '').trim();
+};
+
+const maskOwnerPassword = (row, revealPassword) => ({
+  ...row,
+  password_ciphertext: revealPassword ? row.password_ciphertext || null : null,
+  password_hidden: !revealPassword
+});
+
+export const loadHermesCompanySnapshot = async (
+  supabase,
+  companyKey,
+  { limit = 20, revealPassword = false } = {}
+) => {
+  if (!supabase) {
+    throw new Error('Supabase client is required to read Hermes snapshots');
+  }
+
+  const normalizedCompanyKey = normalizeCompanyKey(companyKey);
+  if (!normalizedCompanyKey) {
+    throw new Error('companyKey is required to read a Hermes company snapshot');
+  }
+
+  const [ownerAccess, cardStatus, cardInventory] = await Promise.all([
+    readTable(supabase, 'cmp_owner_access', {
+      limit,
+      orderBy: 'last_synced_at',
+      ascending: false,
+      eqFilters: [{ column: 'company_key', value: normalizedCompanyKey }]
+    }),
+    readTable(supabase, 'cmp_card_status', {
+      limit,
+      orderBy: 'last_synced_at',
+      ascending: false,
+      eqFilters: [{ column: 'company_key', value: normalizedCompanyKey }]
+    }),
+    readTable(supabase, 'cmp_card_inventory', {
+      limit,
+      orderBy: 'last_synced_at',
+      ascending: false,
+      eqFilters: [{ column: 'company_key', value: normalizedCompanyKey }]
+    })
+  ]);
+
+  const maskedOwnerAccess = ownerAccess.map((row) => maskOwnerPassword(row, revealPassword));
+  const companyName = getCompanyNameFromRows(
+    [ownerAccess[0], cardStatus[0], cardInventory[0]].filter(Boolean),
+    normalizedCompanyKey
+  );
+
+  return {
+    companyKey: normalizedCompanyKey,
+    companyName,
+    revealPassword: Boolean(revealPassword),
+    ownerAccess: maskedOwnerAccess,
+    cardStatus,
+    cardInventory,
+    summary: {
+      ownerAccessCount: maskedOwnerAccess.length,
+      cardStatusCount: cardStatus.length,
+      cardInventoryCount: cardInventory.length
+    }
   };
 };
