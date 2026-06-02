@@ -17,16 +17,48 @@ const readTable = async (supabase, table, { limit = 20, orderBy = 'last_synced_a
   return data || [];
 };
 
-export const loadHermesSnapshot = async (supabase) => {
+const TABLE_MAP = {
+  ownerAccess: {
+    table: 'cmp_owner_access',
+    orderBy: 'last_synced_at'
+  },
+  cardStatus: {
+    table: 'cmp_card_status',
+    orderBy: 'last_synced_at'
+  },
+  cardInventory: {
+    table: 'cmp_card_inventory',
+    orderBy: 'last_synced_at'
+  },
+  syncAudit: {
+    table: 'cmp_sync_audit',
+    orderBy: 'started_at'
+  }
+};
+
+export const loadHermesTableSnapshot = async (supabase, tableKey, { limit = 20 } = {}) => {
+  if (!supabase) {
+    throw new Error('Supabase client is required to read Hermes snapshots');
+  }
+
+  const config = TABLE_MAP[tableKey];
+  if (!config) {
+    throw new Error(`Unknown Hermes snapshot table: ${tableKey}`);
+  }
+
+  return readTable(supabase, config.table, { limit, orderBy: config.orderBy, ascending: false });
+};
+
+export const loadHermesSnapshot = async (supabase, { limit = 20 } = {}) => {
   if (!supabase) {
     throw new Error('Supabase client is required to read Hermes snapshots');
   }
 
   const [ownerAccess, cardStatus, cardInventory, syncAudit] = await Promise.all([
-    readTable(supabase, 'cmp_owner_access', { limit: 20, orderBy: 'last_synced_at', ascending: false }),
-    readTable(supabase, 'cmp_card_status', { limit: 20, orderBy: 'last_synced_at', ascending: false }),
-    readTable(supabase, 'cmp_card_inventory', { limit: 20, orderBy: 'last_synced_at', ascending: false }),
-    readTable(supabase, 'cmp_sync_audit', { limit: 20, orderBy: 'started_at', ascending: false })
+    loadHermesTableSnapshot(supabase, 'ownerAccess', { limit }),
+    loadHermesTableSnapshot(supabase, 'cardStatus', { limit }),
+    loadHermesTableSnapshot(supabase, 'cardInventory', { limit }),
+    loadHermesTableSnapshot(supabase, 'syncAudit', { limit })
   ]);
 
   return {

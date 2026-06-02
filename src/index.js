@@ -1,5 +1,6 @@
 import { DEFAULT_PORTFOLIO_SHEET_NAME, DEFAULT_PORTFOLIO_SOURCE_URL, loadPortfolioFromSource } from './portfolio.js';
 import { captureOwnerAccessForCompany } from './cmpOwners.js';
+import { startHermesApi } from './hermesApi.js';
 import { createHermesSupabaseClient } from './hermesStore.js';
 import { loadHermesSnapshot } from './hermesRead.js';
 import { runCardInventorySync, runCardStatusSync, runOwnersSync } from './hermesSync.js';
@@ -9,20 +10,20 @@ const boot = async () => {
   const sourceUrl = String(process.env.HERMES_ZOHO_XLSX_URL || DEFAULT_PORTFOLIO_SOURCE_URL).trim();
   const sheetName = String(process.env.HERMES_ZOHO_SHEET_NAME || DEFAULT_PORTFOLIO_SHEET_NAME).trim();
   const command = String(process.argv[2] || 'boot').trim();
+  const needsPortfolio = ['boot', 'owners', 'cards', 'inventory'].includes(command);
 
   console.log(`[Hermes] booting in ${mode} mode`);
   console.log(`[Hermes] portfolio source: ${sheetName}`);
   console.log('[Hermes] workers: portfolio loader, CMP access, CMP card status, audit writer');
 
   try {
-    const portfolio = await loadPortfolioFromSource({
-      sourceUrl,
-      desiredSheetName: sheetName
-    });
-
-    console.log(`[Hermes] loaded ${portfolio.companies.length} companies from ${portfolio.sheetName}`);
-
     if (command === 'owners') {
+      const portfolio = await loadPortfolioFromSource({
+        sourceUrl,
+        desiredSheetName: sheetName
+      });
+      console.log(`[Hermes] loaded ${portfolio.companies.length} companies from ${portfolio.sheetName}`);
+
       const supabase = createHermesSupabaseClient();
       const baseUrl = String(process.env.HERMES_CMP_URL || '').trim();
       if (!baseUrl) {
@@ -42,6 +43,12 @@ const boot = async () => {
         console.log(JSON.stringify(syncResult, null, 2));
       }
     } else if (command === 'cards') {
+      const portfolio = await loadPortfolioFromSource({
+        sourceUrl,
+        desiredSheetName: sheetName
+      });
+      console.log(`[Hermes] loaded ${portfolio.companies.length} companies from ${portfolio.sheetName}`);
+
       const supabase = createHermesSupabaseClient();
       const baseUrl = String(process.env.HERMES_CMP_URL || '').trim();
       if (!baseUrl) {
@@ -59,6 +66,12 @@ const boot = async () => {
       const snapshot = await loadHermesSnapshot(supabase);
       console.log(JSON.stringify(snapshot, null, 2));
     } else if (command === 'inventory') {
+      const portfolio = await loadPortfolioFromSource({
+        sourceUrl,
+        desiredSheetName: sheetName
+      });
+      console.log(`[Hermes] loaded ${portfolio.companies.length} companies from ${portfolio.sheetName}`);
+
       const supabase = createHermesSupabaseClient();
       const baseUrl = String(process.env.HERMES_CMP_URL || '').trim();
       if (!baseUrl) {
@@ -71,6 +84,19 @@ const boot = async () => {
         baseUrl
       });
       console.log(JSON.stringify(syncResult, null, 2));
+    } else if (command === 'api') {
+      const supabase = createHermesSupabaseClient();
+      await startHermesApi({
+        supabase,
+        mode
+      });
+      return;
+    } else if (needsPortfolio) {
+      const portfolio = await loadPortfolioFromSource({
+        sourceUrl,
+        desiredSheetName: sheetName
+      });
+      console.log(`[Hermes] loaded ${portfolio.companies.length} companies from ${portfolio.sheetName}`);
     }
 
     console.log('[Hermes] ready for the first orchestration layer');

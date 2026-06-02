@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "node --watch src/index.js",
+    "api": "node src/index.js api",
     "owners": "node src/index.js owners",
     "start": "node src/index.js",
     "test": "node --test"

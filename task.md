@@ -2,12 +2,10 @@
 
 ## Active
 
-- [ ] Stabilize inventory pagination so the worker reliably reaches page 2 and beyond
-- [ ] Confirm the exact `Next` footer button in CMP across a few pages
-- [ ] Validate whether `100 per page` is the best stable setting for repeated syncs
-- [ ] Resume the inventory crawl from page 500 and verify the footer jump works consistently
-- [ ] Check why some runs return `matchedRecords: 0` even when the portfolio should match
-- [ ] Decide whether to keep the full crawl or move to a lighter targeted path
+- [ ] Verify the Hermes read API against the live Supabase project
+- [ ] Add one read surface for company-specific snapshot lookup
+- [ ] Decide whether Hermes should expose a tiny dashboard or stay API-first
+- [ ] Keep the inventory checkpoint workflow available for future resyncs
 
 ## Done
 
@@ -16,6 +14,7 @@
 - [x] Filter inventory persistence to the current portfolio
 - [x] Add audit logging for runs
 - [x] Add progress and task documentation
+- [x] Add local Hermes read API for health and snapshot routes
 
 ## Notes
 

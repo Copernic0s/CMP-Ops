@@ -38,6 +38,7 @@ Current implementation:
 - first card-status worker scaffold with Supabase persistence
 - snapshot reader command for latest owners/cards/audit rows
 - company account cards inventory worker scaffold
+- small Hermes read API with health and snapshot routes
 
 Environment file:
 
@@ -48,6 +49,7 @@ Environment file:
 - on first run, that dedicated profile is clean; sign into CMP once there and Hermes can reuse it afterward
 - CMP only exposes 10, 20, 50, and 100 rows per page; Hermes uses 100 to reduce the crawl count as much as the UI allows
 - if you want Hermes to reuse another profile, set `HERMES_CHROME_FORCE_RESTART=true` only when you are okay with that profile being restarted with the debugger port
+- Hermes exposes a local read API on `127.0.0.1:3333` by default; run `npm run api` after filling the Supabase env vars to serve health and snapshot endpoints
 
 Database bootstrap:
 

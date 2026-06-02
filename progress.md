@@ -7,6 +7,7 @@
 - Supabase bootstrap tables exist and inventory writes are filtered by portfolio.
 - The inventory worker currently crawls the `company-account-cards` page and captures only rows that match the current portfolio.
 - The inventory worker now supports a resume point and the local config starts from page 500.
+- Hermes now exposes a local read API for health and snapshot routes.
 - `AGENT.md` already exists and remains the repo-wide operating guide.
 
 ## What Works
@@ -18,6 +19,7 @@
 - Supabase persistence and audit trail
 - inventory page-size control at the UI limit of `100 per page`
 - filtering of inventory rows by portfolio before write
+- local Hermes API for health and snapshot reads
 
 ## What Broke Recently
 
@@ -31,9 +33,10 @@
 - use the exact `Next` button from the footer only
 - keep the write side filtered to the current portfolio
 - stop expanding the crawl until the pagination path is stable
+- use the local Hermes API for read-only inspection of latest snapshots
 
 ## Next Checkpoints
 
-- verify `Next` advances from page 1 to page 2 consistently
-- confirm `matchedRecords` stays non-zero for known companies
-- decide whether to keep the inventory worker or pivot to a lighter targeted sync path
+- verify the API health and snapshot routes against Supabase data
+- decide the next read surface: company-specific endpoint, CLI summary, or small UI
+- keep using the inventory checkpoint workflow instead of re-running from page 1
