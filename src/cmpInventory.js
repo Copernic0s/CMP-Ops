@@ -681,12 +681,22 @@ export const captureCardInventory = async (options = {}) => {
   await setInventoryPageSize(activePage, desiredPageSize, log);
   await waitForInventoryTable(activePage, log);
 
+  let effectiveStartPage = await findCurrentPageFromFooter(activePage, desiredPageSize)
+    || await findCurrentPaginationPage(activePage)
+    || 1;
+
   if (startPage > 1) {
     const jumped = await jumpToInventoryPage(activePage, startPage, log);
     if (!jumped) {
       log(`could not jump directly to page ${startPage}, continuing from current page`);
     }
     await waitForInventoryTable(activePage, log);
+    effectiveStartPage = await findCurrentPageFromFooter(activePage, desiredPageSize)
+      || await findCurrentPaginationPage(activePage)
+      || effectiveStartPage;
+    if (jumped) {
+      effectiveStartPage = startPage;
+    }
   }
 
   const rows = [];
@@ -694,7 +704,7 @@ export const captureCardInventory = async (options = {}) => {
   const maxPages = Number(process.env.HERMES_INVENTORY_MAX_PAGES || 500);
 
   for (let pageIndex = 0; pageIndex < maxPages; pageIndex += 1) {
-    const currentLogicalPage = startPage + pageIndex;
+    const currentLogicalPage = effectiveStartPage + pageIndex;
     await waitForInventoryTable(activePage, log);
     const headers = await gatherTableHeaders(activePage);
     log(`reading page ${currentLogicalPage} with ${headers.length} headers`);
