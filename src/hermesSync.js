@@ -12,6 +12,21 @@ import { captureCardInventory, normalizeInventoryCompanyKey } from './cmpInvento
 const buildCompanyKeySet = (portfolio) =>
   new Set((portfolio?.companies || []).map((company) => String(company.companyKey || '').trim()).filter(Boolean));
 
+const summarizeMatchedInventoryRows = (rows) => {
+  const companyCounts = new Map();
+
+  for (const row of rows || []) {
+    const companyName = String(row.company_name || '').trim();
+    if (!companyName) continue;
+    companyCounts.set(companyName, (companyCounts.get(companyName) || 0) + 1);
+  }
+
+  return [...companyCounts.entries()]
+    .map(([company, cards]) => ({ company, cards }))
+    .sort((left, right) => right.cards - left.cards || left.company.localeCompare(right.company))
+    .slice(0, 10);
+};
+
 const toOwnerAccessRow = (company, snapshot) => ({
   company_key: company.companyKey,
   company_name: company.companyName,
@@ -236,8 +251,17 @@ export const runCardInventorySync = async ({
     })).filter((row) => row.card_number);
 
     const rows = mappedRows.filter((row) => portfolioKeys.has(String(row.company_key || '').trim()));
+    const summary = summarizeMatchedInventoryRows(rows);
 
     await upsertCardInventoryRows(supabase, rows);
+
+    console.log(
+      `[Hermes] inventory summary: start page ${snapshot.startPage || 1}, end page ${snapshot.endPage || snapshot.startPage || 1}, ` +
+      `pages processed ${snapshot.pagesProcessed || 0}, discovered ${mappedRows.length}, matched ${rows.length}`
+    );
+    if (summary.length > 0) {
+      console.log(`[Hermes] inventory top matches: ${summary.map((item) => `${item.company} (${item.cards})`).join(' | ')}`);
+    }
 
     await finishSyncAuditRun(supabase, audit.id, {
       recordsFound: rows.length,
@@ -247,6 +271,10 @@ export const runCardInventorySync = async ({
         portfolio_sheet: portfolio.sheetName,
         discovered_rows: mappedRows.length,
         matched_rows: rows.length,
+        start_page: snapshot.startPage || null,
+        end_page: snapshot.endPage || null,
+        pages_processed: snapshot.pagesProcessed || null,
+        top_matches: summary,
         finished: true
       }
     });
@@ -256,7 +284,11 @@ export const runCardInventorySync = async ({
       totalRecords: rows.length,
       discoveredRecords: mappedRows.length,
       matchedRecords: rows.length,
-      results: rows.length
+      results: rows.length,
+      startPage: snapshot.startPage || null,
+      endPage: snapshot.endPage || null,
+      pagesProcessed: snapshot.pagesProcessed || null,
+      topMatches: summary
     };
   } catch (error) {
     await finishSyncAuditRun(supabase, audit.id, {

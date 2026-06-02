@@ -702,6 +702,8 @@ export const captureCardInventory = async (options = {}) => {
   const rows = [];
   const seen = new Set();
   const maxPages = Number(process.env.HERMES_INVENTORY_MAX_PAGES || 500);
+  let pagesProcessed = 0;
+  let lastPageProcessed = effectiveStartPage;
 
   for (let pageIndex = 0; pageIndex < maxPages; pageIndex += 1) {
     const currentLogicalPage = effectiveStartPage + pageIndex;
@@ -725,6 +727,8 @@ export const captureCardInventory = async (options = {}) => {
         }
       });
     }
+    pagesProcessed += 1;
+    lastPageProcessed = currentLogicalPage;
 
     const advanced = await clickNextPage(activePage, log);
     if (!advanced) {
@@ -742,6 +746,9 @@ export const captureCardInventory = async (options = {}) => {
 
   return {
     totalRecords: rows.length,
-    rows
+    rows,
+    startPage: effectiveStartPage,
+    endPage: lastPageProcessed,
+    pagesProcessed
   };
 };
