@@ -2,6 +2,17 @@
 
 This repository is a separate harness for CMP operations.
 
+## Living Docs
+
+Keep these files current as Hermes evolves:
+
+- [`task.md`](./task.md) for active work that should survive context resets
+- [`progress.md`](./progress.md) for the project status, working state, and known failure modes
+- [`.agents/README.md`](./.agents/README.md) for the navigation hub and operating layout
+- [`.agents/state.md`](./.agents/state.md) for the latest verified runtime state
+- [`.agents/workflow.md`](./.agents/workflow.md) for the editing and verification loop
+- [`.agents/skills.md`](./.agents/skills.md) for the skill map and when to use each one
+
 ## Mission
 
 Hermes coordinates CMP access and card-state workflows for only the companies that belong to our current portfolio.

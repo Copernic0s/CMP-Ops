@@ -2,10 +2,7 @@
 
 ## Active
 
-- [ ] Verify the Hermes read API against the live Supabase project with automatic `.env` loading
-- [ ] Verify the merged company endpoint against the live Supabase project
-- [ ] Verify the card search endpoint against the live Supabase project
-- [ ] Verify the dashboard route against the live Supabase project and tune the sidebar/command bar layout if needed
+- [ ] Keep the dashboard polished as the main operator surface
 - [ ] Keep the inventory checkpoint workflow available for future resyncs
 
 ## Done
@@ -20,6 +17,10 @@
 - [x] Add card search endpoint for inventory lookups
 - [x] Auto-load `.env` at startup for Supabase and Hermes credentials
 - [x] Add browser dashboard for company and card lookup with merged snapshot review
+- [x] Verify the Hermes read API against the live Supabase project with automatic `.env` loading
+- [x] Verify the merged company endpoint against the live Supabase project
+- [x] Verify the card search endpoint against the live Supabase project
+- [x] Verify the dashboard route against the live Supabase project and tune the sidebar/command bar layout
 
 ## Notes
 

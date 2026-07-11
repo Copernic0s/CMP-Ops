@@ -1036,7 +1036,7 @@ export const buildHermesDashboardHtml = () => `<!doctype html>
               '<strong>' + escapeHtml(item.companyName || item.companyKey) + '</strong>' +
               '<span>' + escapeHtml(item.companyKey) + '</span>' +
             '</div>' +
-            '<div class="pill ok">' + String(item.ownerCount || 0) + ' owners · ' + String(item.cardCount || 0) + ' cards</div>' +
+            '<div class="pill ok">Open snapshot</div>' +
           '</button>'
         );
       }).join('');

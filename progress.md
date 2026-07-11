@@ -9,9 +9,11 @@
 - The inventory worker now supports a resume point and the local config starts from page 500.
 - Hermes now exposes a local read API for health and snapshot routes.
 - Hermes now exposes a merged company read endpoint that joins owner access, card status, and inventory data.
+- Hermes now exposes a working card search endpoint for inventory lookups.
 - Hermes auto-loads `.env` at startup, so Supabase credentials no longer depend on manual PowerShell export.
 - Hermes now serves a local dashboard at `/dashboard` with a sidebar shell, command bar, company lookup, card lookup, and merged snapshots.
 - `AGENT.md` already exists and remains the repo-wide operating guide.
+- The live dashboard has been reviewed and is readable, dark, and operator-focused.
 
 ## What Works
 
@@ -27,12 +29,12 @@
 - card-level search endpoint for inventory lookups
 - automatic `.env` loading on boot
 - local dashboard for company search, card search, and merged data review
+- project docs for task, progress, and agent guidance
 
 ## What Broke Recently
 
-- pagination became fragile when the worker tried to be too clever about the `Next` button
-- the worker sometimes stops after page 1 if the selector misses the real footer button
-- the crawl is still too broad operationally and needs a safer path for repeated runs
+- pagination is still the most fragile part of the worker stack
+- the worker needs a safer path for repeated runs and checkpointed inventory rescans
 
 ## Current Workaround
 
@@ -41,10 +43,9 @@
 - keep the write side filtered to the current portfolio
 - stop expanding the crawl until the pagination path is stable
 - use the local Hermes API for read-only inspection of latest snapshots
+- keep the dashboard as the main operator entry point
 
 ## Next Checkpoints
 
-- verify the API health and snapshot routes against Supabase data
-- verify the company endpoint against real Supabase data and password reveal rules
-- verify the dashboard route in the browser and tighten the sidebar, card search, and summary layout if needed
+- keep the dashboard polished as the main operator surface
 - keep using the inventory checkpoint workflow instead of re-running from page 1

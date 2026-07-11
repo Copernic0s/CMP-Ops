@@ -43,7 +43,7 @@ Current implementation:
 
 Environment file:
 
-- copy [`.env.example`](C:/Users/AndresMendez/Documents/Debors-Clean/CMP-Ops/.env.example) into `.env`
+- copy [`.env.example`](./.env.example) into `.env`
 - fill in Chrome, CMP, and Supabase credentials before running the workers
 - Hermes uses a dedicated Chrome data dir so it does not disturb your normal sessions
 - Hermes auto-loads a local `.env` file on startup, so you do not need to export variables manually in PowerShell
@@ -58,5 +58,5 @@ Environment file:
 
 Database bootstrap:
 
-- run [supabase/bootstrap.sql](C:/Users/AndresMendez/Documents/Debors-Clean/CMP-Ops/supabase/bootstrap.sql) once in the Supabase SQL editor
+- run [supabase/bootstrap.sql](./supabase/bootstrap.sql) once in the Supabase SQL editor
 - that creates the owners, card status, inventory, and audit tables together

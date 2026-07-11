@@ -149,7 +149,7 @@ export const searchHermesCards = async (supabase, query = '', { limit = 12 } = {
 
   let builder = supabase
     .from('cmp_card_inventory')
-    .select('company_key,company_name,organization,efs_account,account_identifier,card_number,company_status,card_status,last_used_date,last_synced_at');
+    .select('company_key,company_name,organization,efs_account,card_number,company_status,card_status,last_used_date,last_synced_at');
 
   if (normalizedQuery) {
     builder = builder.or([
