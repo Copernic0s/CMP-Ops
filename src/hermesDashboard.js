@@ -357,18 +357,13 @@ export const buildHermesDashboardHtml = () => `<!doctype html>
 
     .command-top {
       display: grid;
-      grid-template-columns: auto minmax(0, 1fr) auto auto;
+      grid-template-columns: minmax(0, 1fr) auto auto;
       gap: 12px;
       align-items: center;
     }
 
     .mode-switch {
-      display: inline-flex;
-      padding: 4px;
-      gap: 6px;
-      border-radius: 16px;
-      background: rgba(7, 11, 16, 0.9);
-      border: 1px solid var(--line);
+      display: none;
     }
 
     .mode-button {
@@ -766,6 +761,17 @@ export const buildHermesDashboardHtml = () => `<!doctype html>
           </div>
         </div>
 
+        <section class="results-panel">
+          <div class="panel-head">
+            <div>
+              <h3 id="resultsTitle">Company list</h3>
+              <div class="hint" id="resultsHint">Search by company name or 17-digit card number.</div>
+            </div>
+            <div class="hint" id="resultsCount">0 results</div>
+          </div>
+          <div id="resultsList" class="result-list" aria-live="polite"></div>
+        </section>
+
         <div class="sidebar-card">
           <div class="compact-label">System status</div>
           <div class="status-chip">Local API Ready</div>
@@ -794,7 +800,7 @@ export const buildHermesDashboardHtml = () => `<!doctype html>
             </div>
             <div class="search-field">
               <label id="searchLabel" for="query">Global lookup</label>
-              <input id="query" type="search" placeholder="Type a company name, e.g. Allstate Cargo" autocomplete="off" />
+              <input id="query" type="search" placeholder="Type a company name or 17-digit card number" autocomplete="off" />
             </div>
             <label class="toggle" title="Show password ciphertext in the company snapshot">
               <input id="reveal" type="checkbox" />
@@ -807,19 +813,8 @@ export const buildHermesDashboardHtml = () => `<!doctype html>
           </div>
           <div class="status-line">
             <div id="status">Ready. Search a company or a card number to load the unified snapshot.</div>
-            <div class="status-chip" id="modeChip">Company mode</div>
+            <div class="status-chip" id="modeChip">Company + card search</div>
           </div>
-        </section>
-
-        <section class="results-panel">
-          <div class="panel-head">
-            <div>
-              <h3 id="resultsTitle">Search results</h3>
-              <div class="hint" id="resultsHint">Suggestions appear as you type.</div>
-            </div>
-            <div class="hint" id="resultsCount">0 results</div>
-          </div>
-          <div id="resultsList" class="result-list" aria-live="polite"></div>
         </section>
 
         <section class="metrics-grid" id="metrics">
@@ -980,32 +975,15 @@ export const buildHermesDashboardHtml = () => `<!doctype html>
       return '/company/' + encoded + '?revealPassword=' + (revealInput.checked ? 'true' : 'false');
     };
 
-    const buildSearchUrl = function() {
-      const params = new URLSearchParams();
-      const query = queryInput.value.trim();
-      if (query) {
-        params.set('q', query);
-      }
-      params.set('limit', '8');
-      return state.searchMode === 'card' ? '/cards?' + params.toString() : '/companies?' + params.toString();
-    };
-
     const getSearchPlaceholder = function() {
-      return state.searchMode === 'card'
-        ? 'Type a card number or company name, e.g. 708305...'
-        : 'Type a company name, e.g. Allstate Cargo';
+      return 'Type a company name or 17-digit card number';
     };
 
     const setMode = function(mode) {
-      state.searchMode = mode === 'card' ? 'card' : 'company';
-      $('modeCompany').classList.toggle('is-active', state.searchMode === 'company');
-      $('modeCard').classList.toggle('is-active', state.searchMode === 'card');
       queryInput.placeholder = getSearchPlaceholder();
-      modeChip.textContent = state.searchMode === 'card' ? 'Card mode' : 'Company mode';
-      resultsTitle.textContent = state.searchMode === 'card' ? 'Card hits' : 'Company suggestions';
-      resultsHint.textContent = state.searchMode === 'card'
-        ? 'Search by card number or company and click a result to jump to the company snapshot.'
-        : 'Start typing a company name and choose a row.';
+      modeChip.textContent = 'Company + card search';
+      resultsTitle.textContent = 'Company list';
+      resultsHint.textContent = 'Search by company name or 17-digit card number.';
       if (queryInput.value.trim()) {
         loadSearchResults(queryInput.value.trim()).catch(function(error) {
           setStatus(error.message, true);
@@ -1022,21 +1000,71 @@ export const buildHermesDashboardHtml = () => `<!doctype html>
       resultsCount.textContent = '0 results';
     };
 
+    const mergeSearchResults = function(companyItems, cardItems) {
+      const merged = new Map();
+
+      (companyItems || []).forEach(function(item) {
+        const companyKey = String(item.companyKey || item.company_key || '').trim();
+        if (!companyKey) {
+          return;
+        }
+        merged.set(companyKey, {
+          companyKey: companyKey,
+          companyName: String(item.companyName || item.company_name || companyKey).trim(),
+          lastSyncedAt: item.lastSyncedAt || item.last_synced_at || null,
+          matchedCardNumbers: [],
+          matchedStatuses: []
+        });
+      });
+
+      (cardItems || []).forEach(function(item) {
+        const companyKey = String(item.company_key || item.companyKey || '').trim();
+        if (!companyKey) {
+          return;
+        }
+        const current = merged.get(companyKey) || {
+          companyKey: companyKey,
+          companyName: String(item.company_name || item.companyName || companyKey).trim(),
+          lastSyncedAt: item.last_synced_at || item.lastSyncedAt || null,
+          matchedCardNumbers: [],
+          matchedStatuses: []
+        };
+        if (!current.companyName) {
+          current.companyName = String(item.company_name || item.companyName || companyKey).trim();
+        }
+        if (item.card_number && current.matchedCardNumbers.indexOf(item.card_number) === -1) {
+          current.matchedCardNumbers.push(item.card_number);
+        }
+        const statusText = String(item.card_status || item.company_status || '').trim();
+        if (statusText && current.matchedStatuses.indexOf(statusText) === -1) {
+          current.matchedStatuses.push(statusText);
+        }
+        if (!current.lastSyncedAt) {
+          current.lastSyncedAt = item.last_synced_at || item.lastSyncedAt || null;
+        }
+        merged.set(companyKey, current);
+      });
+
+      return Array.from(merged.values()).slice(0, 10);
+    };
+
     const renderCompanyResults = function(items) {
       if (!items.length) {
-        renderEmptyResults('No matches yet. Start typing a company name.');
+        renderEmptyResults('No matches yet. Search a company name or card number.');
         return;
       }
 
-      resultsCount.textContent = String(items.length) + ' results';
+      resultsCount.textContent = String(items.length) + ' companies';
       resultsList.innerHTML = items.map(function(item) {
+        const cardLabel = item.matchedCardNumbers && item.matchedCardNumbers.length ? item.matchedCardNumbers[0] : '';
+        const statusLabel = item.matchedStatuses && item.matchedStatuses.length ? item.matchedStatuses[0] : 'Open snapshot';
         return (
           '<button type="button" class="result-item" data-company-key="' + escapeHtml(item.companyKey) + '">' +
             '<div>' +
               '<strong>' + escapeHtml(item.companyName || item.companyKey) + '</strong>' +
-              '<span>' + escapeHtml(item.companyKey) + '</span>' +
+              '<span>' + escapeHtml(item.companyKey) + (cardLabel ? ' · ' + escapeHtml(cardLabel) : '') + '</span>' +
             '</div>' +
-            '<div class="pill ok">Open snapshot</div>' +
+            '<div class="pill ok">' + escapeHtml(statusLabel) + '</div>' +
           '</button>'
         );
       }).join('');
@@ -1044,42 +1072,6 @@ export const buildHermesDashboardHtml = () => `<!doctype html>
       resultsList.querySelectorAll('[data-company-key]').forEach(function(button) {
         button.addEventListener('click', function() {
           loadCompany(button.getAttribute('data-company-key')).catch(function(error) {
-            setStatus(error.message, true);
-          });
-        });
-      });
-    };
-
-    const renderCardResults = function(items) {
-      if (!items.length) {
-        renderEmptyResults('No card matches found for this query.');
-        return;
-      }
-
-      resultsCount.textContent = String(items.length) + ' results';
-      resultsList.innerHTML = items.map(function(item) {
-        var statusClass = String(item.card_status || item.company_status || '').toLowerCase().includes('active') ? 'ok' : 'warn';
-        return (
-          '<button type="button" class="result-item" data-company-key="' + escapeHtml(item.company_key || '') + '">' +
-            '<div>' +
-              '<strong class="mono">' + escapeHtml(item.card_number || '—') + '</strong>' +
-              '<span>' + escapeHtml(item.company_name || item.company_key || 'Unknown company') + '</span>' +
-            '</div>' +
-            '<div style="display:grid; gap:8px; justify-items:end;">' +
-              '<div class="pill ' + statusClass + '">' + escapeHtml(item.card_status || item.company_status || 'unknown') + '</div>' +
-              '<div class="pill">' + escapeHtml(item.last_used_date || 'No date') + '</div>' +
-            '</div>' +
-          '</button>'
-        );
-      }).join('');
-
-      resultsList.querySelectorAll('[data-company-key]').forEach(function(button) {
-        button.addEventListener('click', function() {
-          var companyKey = button.getAttribute('data-company-key');
-          if (!companyKey) {
-            return;
-          }
-          loadCompany(companyKey).catch(function(error) {
             setStatus(error.message, true);
           });
         });
@@ -1213,24 +1205,30 @@ export const buildHermesDashboardHtml = () => `<!doctype html>
       renderSidebar(payload);
     };
 
-    const renderSearchResults = function(payload) {
-      state.results = payload.results || [];
-      if (state.searchMode === 'card') {
-        renderCardResults(state.results);
-        return;
-      }
-
-      renderCompanyResults(state.results);
-    };
-
     const loadSearchResults = async function(query) {
-      var endpoint = buildSearchUrl();
-      var payload = await api(endpoint);
-      renderSearchResults(payload);
-      if (!queryInput.value.trim()) {
-        setStatus(state.searchMode === 'card' ? 'Showing recent card hits.' : 'Ready. Search a company or click a suggestion.');
+      var params = new URLSearchParams();
+      var trimmed = String(query || '').trim();
+      if (trimmed) {
+        params.set('q', trimmed);
       }
-      return payload;
+      params.set('limit', '10');
+
+      var payloads = await Promise.all([
+        api('/companies?' + params.toString()),
+        api('/cards?' + params.toString())
+      ]);
+
+      var merged = mergeSearchResults(payloads[0].results || [], payloads[1].results || []);
+      state.results = merged;
+      renderCompanyResults(merged);
+
+      if (!trimmed) {
+        setStatus('Ready. Search a company or card number to load the unified snapshot.');
+      } else {
+        setStatus('Showing matched companies for "' + trimmed + '".');
+      }
+
+      return { results: merged };
     };
 
     const loadCompany = async function(companyKey) {
@@ -1256,20 +1254,15 @@ export const buildHermesDashboardHtml = () => `<!doctype html>
     const submitSearch = async function() {
       var query = queryInput.value.trim();
 
-      if (state.searchMode === 'card') {
-        var payload = await loadSearchResults(query);
-        if (query && payload.results && payload.results.length === 1 && payload.results[0].company_key) {
-          await loadCompany(payload.results[0].company_key);
-        }
-        return;
-      }
-
       if (!query) {
         await loadSearchResults('');
         return;
       }
 
-      await loadCompany(query);
+      var payload = await loadSearchResults(query);
+      if (query && payload.results && payload.results.length === 1 && payload.results[0].companyKey) {
+        await loadCompany(payload.results[0].companyKey);
+      }
     };
 
     const copyText = async function(value, label) {
@@ -1285,7 +1278,7 @@ export const buildHermesDashboardHtml = () => `<!doctype html>
     const boot = async function() {
       try {
         await loadSearchResults('');
-        setStatus('Ready. Search a company or a card number to load the unified snapshot.');
+        setStatus('Ready. Search a company or card number to load the unified snapshot.');
       } catch (error) {
         setStatus(error.message, true);
         renderEmptyResults('Hermes API is not responding yet.');
@@ -1293,15 +1286,11 @@ export const buildHermesDashboardHtml = () => `<!doctype html>
     };
 
     $('modeCompany').addEventListener('click', function() {
-      if (state.searchMode !== 'company') {
-        setMode('company');
-      }
+      setMode('company');
     });
 
     $('modeCard').addEventListener('click', function() {
-      if (state.searchMode !== 'card') {
-        setMode('card');
-      }
+      setMode('card');
     });
 
     searchButton.addEventListener('click', function() {

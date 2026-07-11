@@ -2,7 +2,7 @@
 
 ## Active
 
-- [ ] Keep the dashboard polished as the main operator surface
+- [ ] Keep the dashboard polished as the main operator surface and aligned with the company list + detail flow
 - [ ] Keep the inventory checkpoint workflow available for future resyncs
 
 ## Done
