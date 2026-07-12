@@ -1282,7 +1282,8 @@ export const buildHermesDashboardHtml = () => `<!doctype html>
 
     const buildCompanyUrl = function(companyKey) {
       const encoded = encodeURIComponent(companyKey);
-      return '/company/' + encoded + '?revealPassword=' + (revealInput.checked ? 'true' : 'false');
+      const revealPassword = revealInput ? Boolean(revealInput.checked) : false;
+      return '/company/' + encoded + '?revealPassword=' + (revealPassword ? 'true' : 'false');
     };
 
     const getSearchPlaceholder = function() {
@@ -1704,13 +1705,15 @@ export const buildHermesDashboardHtml = () => `<!doctype html>
       });
     }
 
-    revealInput.addEventListener('change', function() {
-      if (state.lastCompanyKey) {
-        loadCompany(state.lastCompanyKey).catch(function(error) {
-          setStatus(error.message, true);
-        });
-      }
-    });
+    if (revealInput) {
+      revealInput.addEventListener('change', function() {
+        if (state.lastCompanyKey) {
+          loadCompany(state.lastCompanyKey).catch(function(error) {
+            setStatus(error.message, true);
+          });
+        }
+      });
+    }
 
     copyEmailButton.addEventListener('click', function() {
       var owner = state.selectedCompany && state.selectedCompany.ownerAccess && state.selectedCompany.ownerAccess[0];
@@ -1728,7 +1731,7 @@ export const buildHermesDashboardHtml = () => `<!doctype html>
 
     copyPasswordButton.addEventListener('click', function() {
       var owner = state.selectedCompany && state.selectedCompany.ownerAccess && state.selectedCompany.ownerAccess[0];
-      if (!revealInput.checked) {
+      if (!revealInput || !revealInput.checked) {
         setStatus('Reveal passwords first if you need to copy them.', true);
         return;
       }
