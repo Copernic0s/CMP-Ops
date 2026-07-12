@@ -11,8 +11,9 @@
 - Hermes now exposes a merged company read endpoint that joins owner access, card status, and inventory data.
 - Hermes now exposes a working card search endpoint for inventory lookups.
 - Hermes auto-loads `.env` at startup, so Supabase credentials no longer depend on manual PowerShell export.
-- Hermes now serves a local dashboard at `/dashboard` with a sidebar shell, command bar, company lookup, card lookup, and merged snapshots.
-- The dashboard now uses a unified company/card search bar with a left-side list of up to 10 matched companies.
+- Hermes now serves a local dashboard at `/dashboard` with a left-side company list, a center detail surface, and merged snapshots.
+- The dashboard now uses a unified company/card search bar with up to 10 matched companies in the scrollable left rail.
+- The dashboard layout has been reshaped so the center panel owns the active company detail, actions, and a reserved password section.
 - `AGENT.md` already exists and remains the repo-wide operating guide.
 - The live dashboard has been reviewed and is readable, dark, and operator-focused.
 
@@ -30,7 +31,7 @@
 - card-level search endpoint for inventory lookups
 - automatic `.env` loading on boot
 - local dashboard for company search, card search, and merged data review
-- unified dashboard search flow with a left-side company list
+- unified dashboard search flow with a left-side company list and a center detail view
 - project docs for task, progress, and agent guidance
 
 ## What Broke Recently
@@ -49,5 +50,6 @@
 
 ## Next Checkpoints
 
-- keep the dashboard polished as the main operator surface and aligned with the company list + detail flow
+- keep the dashboard polished as the main operator surface with the left list + center detail flow
+- decide the final password reveal behavior for the reserved password section
 - keep using the inventory checkpoint workflow instead of re-running from page 1

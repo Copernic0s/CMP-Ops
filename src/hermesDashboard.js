@@ -98,6 +98,30 @@ export const buildHermesDashboardHtml = () => `<!doctype html>
       gap: 16px;
     }
 
+    .sidebar-brand {
+      border-radius: 22px;
+      padding: 18px 18px 16px;
+      background:
+        radial-gradient(circle at top, rgba(255, 255, 255, 0.04), transparent 55%),
+        linear-gradient(180deg, rgba(22, 30, 41, 0.96), rgba(12, 18, 25, 0.96));
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      display: grid;
+      gap: 10px;
+    }
+
+    .brand-title {
+      margin: 0;
+      font-size: 22px;
+      line-height: 1.05;
+      letter-spacing: -0.05em;
+    }
+
+    .brand-subtitle {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
     .brand-lockup {
       border-radius: 22px;
       padding: 22px 18px 18px;
@@ -610,10 +634,56 @@ export const buildHermesDashboardHtml = () => `<!doctype html>
       gap: 14px;
     }
 
+    .detail-panel {
+      display: grid;
+      gap: 16px;
+    }
+
+    .detail-top {
+      display: grid;
+      grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr);
+      gap: 14px;
+      align-items: start;
+    }
+
+    .detail-note {
+      border-radius: 20px;
+      padding: 16px;
+      background: rgba(8, 12, 17, 0.64);
+      border: 1px dashed rgba(153, 171, 195, 0.2);
+      color: var(--muted);
+      line-height: 1.55;
+      font-size: 13px;
+    }
+
+    .detail-note strong {
+      color: var(--text);
+    }
+
     .panel {
       border-radius: 22px;
       padding: 16px;
       min-width: 0;
+    }
+
+    .password-panel {
+      display: grid;
+      gap: 14px;
+    }
+
+    .password-placeholder {
+      border-radius: 18px;
+      padding: 18px;
+      background: rgba(8, 12, 17, 0.68);
+      border: 1px dashed rgba(153, 171, 195, 0.18);
+      color: var(--muted);
+      display: grid;
+      gap: 8px;
+      line-height: 1.5;
+    }
+
+    .password-placeholder strong {
+      color: var(--text);
     }
 
     .section-head {
@@ -706,6 +776,10 @@ export const buildHermesDashboardHtml = () => `<!doctype html>
       .command-top {
         grid-template-columns: 1fr;
       }
+
+      .detail-top {
+        grid-template-columns: 1fr;
+      }
     }
   </style>
 </head>
@@ -713,91 +787,33 @@ export const buildHermesDashboardHtml = () => `<!doctype html>
   <div class="shell">
     <div class="app-shell">
       <aside class="sidebar">
-        <div class="brand-lockup">
-          <div class="brand-badge" aria-hidden="true">
-            <span class="mark">UNITED</span>
-            <span class="name">HERMES</span>
-          </div>
-          <div class="brand-copy">
-            <div class="eyebrow">Hermes Console</div>
-            <h1>Company Access + Card State</h1>
-            <p>
-              Ops-focused workspace for company lookups, owner access, card state, and inventory snapshots.
-            </p>
-          </div>
-        </div>
-
-        <div class="sidebar-card selected-company">
-          <div>
-            <div class="label">Selected company</div>
-            <div class="company-name" id="sidebarCompanyName">No company loaded</div>
-            <div class="company-key" id="sidebarCompanyKey">Search a company or card to populate the panel.</div>
-          </div>
-          <div class="owner-name" id="sidebarOwnerName">Owner details will appear here.</div>
-          <div class="company-note" id="sidebarNote">Passwords stay hidden until you choose to reveal them.</div>
-          <div class="company-stats">
-            <div class="company-stat">
-              <div class="label">Owners</div>
-              <div class="value" id="sidebarOwnersCount">0</div>
-            </div>
-            <div class="company-stat">
-              <div class="label">Cards</div>
-              <div class="value" id="sidebarCardsCount">0</div>
-            </div>
-            <div class="company-stat">
-              <div class="label">Active</div>
-              <div class="value" id="sidebarActiveCount">0</div>
-            </div>
-            <div class="company-stat">
-              <div class="label">Inactive</div>
-              <div class="value" id="sidebarInactiveCount">0</div>
-            </div>
-          </div>
-          <div class="action-grid">
-            <button id="copyEmail" class="secondary-button" type="button" disabled>Copy email</button>
-            <button id="copyUsername" class="secondary-button" type="button" disabled>Copy username</button>
-            <button id="copyPassword" class="primary-button" type="button" disabled>Copy password</button>
-            <button id="refreshCompany" class="secondary-button" type="button" disabled>Refresh company</button>
-          </div>
+        <div class="sidebar-brand">
+          <div class="eyebrow">Ops Console</div>
+          <h1 class="brand-title">United Cabinet ALMAFUEL</h1>
         </div>
 
         <section class="results-panel">
           <div class="panel-head">
             <div>
-              <h3 id="resultsTitle">Company list</h3>
-              <div class="hint" id="resultsHint">Search by company name or 17-digit card number.</div>
+              <h3 id="resultsTitle">Companies</h3>
             </div>
             <div class="hint" id="resultsCount">0 results</div>
           </div>
           <div id="resultsList" class="result-list" aria-live="polite"></div>
         </section>
-
-        <div class="sidebar-card">
-          <div class="compact-label">System status</div>
-          <div class="status-chip">Local API Ready</div>
-          <div class="sidebar-foot">
-            <strong>Backend:</strong> Hermes read API<br />
-            <strong>Routes:</strong> <code>/dashboard</code>, <code>/companies</code>, <code>/cards</code>, <code>/company/:companyKey</code><br />
-            <strong>Passwords:</strong> hidden by default
-          </div>
-        </div>
       </aside>
 
       <main class="workspace">
         <section class="hero">
-          <div class="eyebrow">United / Hermes</div>
+          <div class="eyebrow">United Cabinet ALMAFUEL</div>
           <h2>Company ops, cards, and passwords in one console.</h2>
           <p>
-            Search a company or a card number, inspect the merged snapshot, and keep the sensitive material masked until you explicitly reveal it.
+            Search a company or a 17-digit card number, then open the company detail view in the center to inspect cards, access rows, and the upcoming password section.
           </p>
         </section>
 
         <section class="command-bar">
           <div class="command-top">
-            <div class="mode-switch" role="tablist" aria-label="Search mode">
-              <button id="modeCompany" class="mode-button is-active" type="button" data-mode="company">Company</button>
-              <button id="modeCard" class="mode-button" type="button" data-mode="card">Card number</button>
-            </div>
             <div class="search-field">
               <label id="searchLabel" for="query">Global lookup</label>
               <input id="query" type="search" placeholder="Type a company name or 17-digit card number" autocomplete="off" />
@@ -813,7 +829,45 @@ export const buildHermesDashboardHtml = () => `<!doctype html>
           </div>
           <div class="status-line">
             <div id="status">Ready. Search a company or a card number to load the unified snapshot.</div>
-            <div class="status-chip" id="modeChip">Company + card search</div>
+            <div class="status-chip" id="modeChip">Unified search</div>
+          </div>
+        </section>
+
+        <section class="panel detail-panel">
+          <div class="detail-top">
+            <div class="selected-company">
+              <div class="label">Active company</div>
+              <div class="company-name" id="detailCompanyName">No company loaded</div>
+              <div class="company-key" id="detailCompanyKey">Search or select a company to populate this view.</div>
+              <div class="owner-name" id="detailOwnerName">Owner details will appear here.</div>
+            </div>
+            <div class="detail-note" id="detailNote">
+              <strong>Password area:</strong> this section is reserved for the future secure password view. For now it remains a placeholder so we can preserve the layout and add the logic cleanly.
+            </div>
+          </div>
+          <div class="company-stats">
+            <div class="company-stat">
+              <div class="label">Owners</div>
+              <div class="value" id="detailOwnersCount">0</div>
+            </div>
+            <div class="company-stat">
+              <div class="label">Cards</div>
+              <div class="value" id="detailCardsCount">0</div>
+            </div>
+            <div class="company-stat">
+              <div class="label">Active</div>
+              <div class="value" id="detailActiveCount">0</div>
+            </div>
+            <div class="company-stat">
+              <div class="label">Inactive</div>
+              <div class="value" id="detailInactiveCount">0</div>
+            </div>
+          </div>
+          <div class="action-grid">
+            <button id="copyEmail" class="secondary-button" type="button" disabled>Copy email</button>
+            <button id="copyUsername" class="secondary-button" type="button" disabled>Copy username</button>
+            <button id="copyPassword" class="primary-button" type="button" disabled>Copy password</button>
+            <button id="refreshCompany" class="secondary-button" type="button" disabled>Refresh company</button>
           </div>
         </section>
 
@@ -887,6 +941,17 @@ export const buildHermesDashboardHtml = () => `<!doctype html>
           </section>
         </div>
 
+        <section class="panel password-panel">
+          <div class="section-head">
+            <h3>Password Section</h3>
+            <div class="hint">Reserved for the secure password view</div>
+          </div>
+          <div class="password-placeholder">
+            <strong>Pending implementation.</strong>
+            This is where we will place the future password-specific view and controls once you confirm the exact behavior you want for masking, reveal, and copy actions.
+          </div>
+        </section>
+
         <section class="panel">
           <div class="section-head">
             <h3>Inventory Rows</h3>
@@ -919,7 +984,6 @@ export const buildHermesDashboardHtml = () => `<!doctype html>
 
   <script>
     const state = {
-      searchMode: 'company',
       lastQuery: '',
       lastCompanyKey: '',
       selectedCompany: null,
@@ -939,16 +1003,15 @@ export const buildHermesDashboardHtml = () => `<!doctype html>
     const status = $('status');
     const modeChip = $('modeChip');
     const resultsTitle = $('resultsTitle');
-    const resultsHint = $('resultsHint');
     const resultsCount = $('resultsCount');
-    const sidebarCompanyName = $('sidebarCompanyName');
-    const sidebarCompanyKey = $('sidebarCompanyKey');
-    const sidebarOwnerName = $('sidebarOwnerName');
-    const sidebarNote = $('sidebarNote');
-    const sidebarOwnersCount = $('sidebarOwnersCount');
-    const sidebarCardsCount = $('sidebarCardsCount');
-    const sidebarActiveCount = $('sidebarActiveCount');
-    const sidebarInactiveCount = $('sidebarInactiveCount');
+    const detailCompanyName = $('detailCompanyName');
+    const detailCompanyKey = $('detailCompanyKey');
+    const detailOwnerName = $('detailOwnerName');
+    const detailNote = $('detailNote');
+    const detailOwnersCount = $('detailOwnersCount');
+    const detailCardsCount = $('detailCardsCount');
+    const detailActiveCount = $('detailActiveCount');
+    const detailInactiveCount = $('detailInactiveCount');
     const copyEmailButton = $('copyEmail');
     const copyUsernameButton = $('copyUsername');
     const copyPasswordButton = $('copyPassword');
@@ -977,22 +1040,6 @@ export const buildHermesDashboardHtml = () => `<!doctype html>
 
     const getSearchPlaceholder = function() {
       return 'Type a company name or 17-digit card number';
-    };
-
-    const setMode = function(mode) {
-      queryInput.placeholder = getSearchPlaceholder();
-      modeChip.textContent = 'Company + card search';
-      resultsTitle.textContent = 'Company list';
-      resultsHint.textContent = 'Search by company name or 17-digit card number.';
-      if (queryInput.value.trim()) {
-        loadSearchResults(queryInput.value.trim()).catch(function(error) {
-          setStatus(error.message, true);
-        });
-      } else {
-        loadSearchResults('').catch(function(error) {
-          setStatus(error.message, true);
-        });
-      }
     };
 
     const renderEmptyResults = function(message) {
@@ -1151,7 +1198,7 @@ export const buildHermesDashboardHtml = () => `<!doctype html>
       refreshCompanyButton.disabled = !hasCompany;
     };
 
-    const renderSidebar = function(payload) {
+    const renderSelectedCompany = function(payload) {
       var hasCompany = Boolean(payload && payload.companyKey);
       var summary = payload && payload.summary ? payload.summary : {};
       var firstOwner = hasCompany && payload.ownerAccess && payload.ownerAccess[0] ? payload.ownerAccess[0] : null;
@@ -1168,19 +1215,19 @@ export const buildHermesDashboardHtml = () => `<!doctype html>
         }
       });
 
-      sidebarCompanyName.textContent = hasCompany ? (payload.companyName || payload.companyKey) : 'No company loaded';
-      sidebarCompanyKey.textContent = hasCompany ? payload.companyKey : 'Search a company or card to populate the panel.';
-      sidebarOwnerName.textContent = firstOwner
+      detailCompanyName.textContent = hasCompany ? (payload.companyName || payload.companyKey) : 'No company loaded';
+      detailCompanyKey.textContent = hasCompany ? payload.companyKey : 'Search or select a company to populate this view.';
+      detailOwnerName.textContent = firstOwner
         ? ('Owner: ' + (firstOwner.owner_name || '—') + ' · ' + (firstOwner.owner_email || '—'))
         : 'Owner details will appear here.';
-      sidebarNote.textContent = payload && payload.revealPassword
-        ? 'Passwords are visible for this snapshot.'
-        : 'Passwords stay hidden until you choose to reveal them.';
+      detailNote.innerHTML = payload && payload.revealPassword
+        ? '<strong>Password area:</strong> passwords are visible for this snapshot and the password section is ready to absorb the secure view later.'
+        : '<strong>Password area:</strong> this section is reserved for the future secure password view. For now it remains a placeholder.';
 
-      sidebarOwnersCount.textContent = String(summary.ownerAccessCount || 0);
-      sidebarCardsCount.textContent = String((summary.cardStatusCount || 0) + (summary.cardInventoryCount || 0));
-      sidebarActiveCount.textContent = String(activeCards);
-      sidebarInactiveCount.textContent = String(inactiveCards);
+      detailOwnersCount.textContent = String(summary.ownerAccessCount || 0);
+      detailCardsCount.textContent = String((summary.cardStatusCount || 0) + (summary.cardInventoryCount || 0));
+      detailActiveCount.textContent = String(activeCards);
+      detailInactiveCount.textContent = String(inactiveCards);
 
       updateSidebarActions(payload);
     };
@@ -1202,7 +1249,7 @@ export const buildHermesDashboardHtml = () => `<!doctype html>
       renderOwnerRows(payload.ownerAccess || [], payload.revealPassword);
       renderCardRows(payload.cardStatus || []);
       renderInventoryRows(payload.cardInventory || []);
-      renderSidebar(payload);
+      renderSelectedCompany(payload);
     };
 
     const loadSearchResults = async function(query) {
@@ -1284,14 +1331,6 @@ export const buildHermesDashboardHtml = () => `<!doctype html>
         renderEmptyResults('Hermes API is not responding yet.');
       }
     };
-
-    $('modeCompany').addEventListener('click', function() {
-      setMode('company');
-    });
-
-    $('modeCard').addEventListener('click', function() {
-      setMode('card');
-    });
 
     searchButton.addEventListener('click', function() {
       submitSearch().catch(function(error) {

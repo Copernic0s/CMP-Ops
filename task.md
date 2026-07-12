@@ -2,7 +2,9 @@
 
 ## Active
 
-- [ ] Keep the dashboard polished as the main operator surface and aligned with the company list + detail flow
+- [ ] Keep the dashboard polished as the main operator surface with a left company list, center detail view, and reserved password section
+- [ ] Confirm the final branding text for the header and any logo or badge treatment
+- [ ] Define the exact password behavior for the future secure reveal section
 - [ ] Keep the inventory checkpoint workflow available for future resyncs
 
 ## Done
