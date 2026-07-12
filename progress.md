@@ -15,6 +15,8 @@
 - The dashboard now uses a unified company/card search bar with up to 10 matched companies in the scrollable left rail.
 - The dashboard now has `Cards` and `Credentials` tabs, with `Cards` owning the search flow and `Credentials` reserved for the email/password surface.
 - The dashboard layout has been reshaped so the center panel owns the active company detail, actions, and a reserved password section.
+- The `Cards` view is being flattened toward an Indeed-like layout: compact header, strong search bar, left company rail, and a single active detail area.
+- Legacy dashboard blocks in the `Cards` flow are being hidden so the interface can shed the older stacked-card look.
 - `AGENT.md` already exists and remains the repo-wide operating guide.
 - The live dashboard has been reviewed and is readable, dark, and operator-focused.
 

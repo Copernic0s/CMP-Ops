@@ -430,6 +430,70 @@ export const buildHermesDashboardHtml = () => `<!doctype html>
       gap: 14px;
     }
 
+    .app-nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      padding: 12px 18px;
+      border-radius: 22px;
+      background: rgba(10, 15, 21, 0.78);
+      border: 1px solid rgba(153, 171, 195, 0.16);
+      margin-bottom: 8px;
+      position: sticky;
+      top: 18px;
+      z-index: 5;
+      backdrop-filter: blur(18px);
+    }
+
+    .app-nav .brand-mini {
+      display: grid;
+      gap: 2px;
+    }
+
+    .app-nav .brand-mini strong {
+      font-size: 22px;
+      line-height: 1;
+      letter-spacing: -0.04em;
+    }
+
+    .app-nav .brand-mini span {
+      font-family: 'IBM Plex Mono', ui-monospace, monospace;
+      font-size: 10px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--accent-2);
+    }
+
+    .nav-links {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .nav-link {
+      appearance: none;
+      border: 0;
+      background: transparent;
+      color: var(--muted);
+      padding: 10px 12px;
+      border-radius: 999px;
+      font: inherit;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 120ms ease, color 120ms ease;
+    }
+
+    .nav-link.is-active {
+      color: var(--text);
+      background: rgba(127, 224, 199, 0.12);
+    }
+
+    .nav-link:hover {
+      color: var(--text);
+    }
+
     .command-top {
       display: grid;
       grid-template-columns: minmax(0, 1fr) auto auto;
@@ -554,6 +618,92 @@ export const buildHermesDashboardHtml = () => `<!doctype html>
 
     .view-panel.is-hidden {
       display: none;
+    }
+
+    #cardsView .metrics-grid,
+    #cardsView .content-grid,
+    #cardsView .password-panel,
+    #cardsView > .footnote {
+      display: none;
+    }
+
+    .cards-layout {
+      display: grid;
+      grid-template-columns: minmax(320px, 360px) minmax(0, 1fr);
+      gap: 16px;
+      align-items: start;
+    }
+
+    .cards-pane,
+    .detail-pane {
+      border-radius: 24px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(18px);
+      overflow: hidden;
+    }
+
+    .cards-pane {
+      display: grid;
+      min-height: calc(100vh - 220px);
+    }
+
+    .cards-pane-head,
+    .detail-pane-head {
+      padding: 16px 18px 12px;
+      border-bottom: 1px solid rgba(153, 171, 195, 0.1);
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .cards-pane-head h3,
+    .detail-pane-head h3 {
+      margin: 0;
+      font-size: 15px;
+    }
+
+    .cards-pane-body {
+      padding: 12px 12px 14px;
+      overflow: auto;
+    }
+
+    .cards-pane .result-list {
+      max-height: none;
+      overflow: visible;
+      padding-right: 0;
+    }
+
+    .detail-pane {
+      display: grid;
+      min-height: calc(100vh - 220px);
+    }
+
+    .detail-pane-body {
+      padding: 18px;
+      display: grid;
+      gap: 14px;
+    }
+
+    .hero-mini {
+      display: grid;
+      gap: 6px;
+    }
+
+    .hero-mini h2 {
+      margin: 0;
+      font-size: 24px;
+      line-height: 1.05;
+      letter-spacing: -0.04em;
+    }
+
+    .hero-mini p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.55;
     }
 
     .results-panel {
@@ -845,6 +995,10 @@ export const buildHermesDashboardHtml = () => `<!doctype html>
         flex-direction: column;
         align-items: flex-start;
       }
+
+      .cards-layout {
+        grid-template-columns: 1fr;
+      }
     }
   </style>
 </head>
@@ -874,7 +1028,7 @@ export const buildHermesDashboardHtml = () => `<!doctype html>
             <div class="eyebrow">Almafuel Cards</div>
             <h2>Company cards and credentials in one console.</h2>
             <p>
-              Use Cards to search by company or 17-digit card number. Credentials will live in the second subpage.
+              Search by company or 17-digit card number. Select a card to open the detail panel.
             </p>
           </div>
           <div class="hero-actions">
@@ -945,7 +1099,7 @@ export const buildHermesDashboardHtml = () => `<!doctype html>
           </div>
         </section>
 
-        <section class="metrics-grid" id="metrics">
+        <section class="metrics-grid" id="metrics" style="display:none">
           <div class="metric">
             <div class="label">Company</div>
             <div class="value" id="metricCompany">—</div>
@@ -968,7 +1122,7 @@ export const buildHermesDashboardHtml = () => `<!doctype html>
           </div>
         </section>
 
-        <div class="content-grid">
+        <div class="content-grid" style="display:none">
           <section class="panel">
             <div class="section-head">
               <h3>Owner Access</h3>
@@ -1015,7 +1169,7 @@ export const buildHermesDashboardHtml = () => `<!doctype html>
           </section>
         </div>
 
-        <section class="panel password-panel">
+        <section class="panel password-panel" style="display:none">
           <div class="section-head">
             <h3>Password Section</h3>
             <div class="hint">Reserved for the secure password view</div>
@@ -1026,7 +1180,7 @@ export const buildHermesDashboardHtml = () => `<!doctype html>
           </div>
         </section>
 
-        <section class="panel">
+        <section class="panel" style="display:none">
           <div class="section-head">
             <h3>Inventory Rows</h3>
             <div class="hint" id="inventoryHint">Inventory rows will show here when available</div>
@@ -1049,7 +1203,7 @@ export const buildHermesDashboardHtml = () => `<!doctype html>
           </div>
         </section>
 
-        <div class="footnote">
+        <div class="footnote" style="display:none">
           Hermes keeps passwords hidden until you explicitly reveal them.
         </div>
         </section>

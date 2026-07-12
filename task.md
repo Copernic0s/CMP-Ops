@@ -3,6 +3,7 @@
 ## Active
 
 - [ ] Keep the dashboard polished as the main operator surface with Cards and Credentials tabs, a left company list, and a center detail view
+- [ ] Finish flattening the Cards view into the Indeed-like layout and remove the stacked legacy panels
 - [ ] Confirm the final branding text for the header and any logo or badge treatment
 - [ ] Define the exact password behavior for the future secure reveal section
 - [ ] Keep the CMP scraping bot as a separate pending task
