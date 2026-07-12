@@ -296,9 +296,9 @@ export const buildHermesDashboardHtml = () => `<!doctype html>
     }
 
     .secondary-button {
-      background: rgba(10, 15, 21, 0.9);
+      background: rgba(255, 255, 255, 0.84);
       color: var(--text);
-      border: 1px solid var(--line);
+      border: 1px solid rgba(109, 40, 217, 0.18);
     }
 
     .secondary-button:disabled,
@@ -989,6 +989,14 @@ export const buildHermesDashboardHtml = () => `<!doctype html>
       min-height: 46px;
     }
 
+    .cards-pane-head .secondary-button {
+      padding: 10px 12px;
+      border-radius: 999px;
+      font-size: 12px;
+      color: var(--accent);
+      background: rgba(109, 40, 217, 0.08);
+    }
+
     @media (max-width: 1240px) {
       .app-shell,
       .content-grid,
@@ -1054,6 +1062,7 @@ export const buildHermesDashboardHtml = () => `<!doctype html>
                 <h3>Companies</h3>
                 <div class="hint" id="resultsCount">0 results</div>
               </div>
+              <button id="syncDashboard" class="secondary-button" type="button">Sync now</button>
             </div>
             <div class="cards-pane-body">
               <div id="resultsList" class="result-list" aria-live="polite"></div>
@@ -1221,6 +1230,7 @@ export const buildHermesDashboardHtml = () => `<!doctype html>
     const copyUsernameButton = $('copyUsername');
     const copyPasswordButton = $('copyPassword');
     const refreshCompanyButton = $('refreshCompany');
+    const syncDashboardButton = $('syncDashboard');
     const credentialHint = $('credentialHint');
     const credentialBody = $('credentialBody');
     const credentialCount = $('credentialCount');
@@ -1586,6 +1596,19 @@ export const buildHermesDashboardHtml = () => `<!doctype html>
       }
     };
 
+    const refreshVisibleView = async function() {
+      var query = queryInput.value.trim();
+      if (state.lastCompanyKey) {
+        await Promise.all([
+          loadSearchResults(query),
+          loadCompany(state.lastCompanyKey)
+        ]);
+        return;
+      }
+
+      await loadSearchResults(query);
+    };
+
     const copyText = async function(value, label) {
       if (!value) {
         setStatus('Nothing to copy for ' + label.toLowerCase(), true);
@@ -1632,6 +1655,14 @@ export const buildHermesDashboardHtml = () => `<!doctype html>
     tabCredentialsButton.addEventListener('click', function() {
       setView('credentials');
     });
+
+    if (syncDashboardButton) {
+      syncDashboardButton.addEventListener('click', function() {
+        refreshVisibleView().catch(function(error) {
+          setStatus(error.message, true);
+        });
+      });
+    }
 
     refreshCompanyButton.addEventListener('click', function() {
       if (!state.lastCompanyKey) {
