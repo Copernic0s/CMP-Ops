@@ -567,16 +567,7 @@ export const buildHermesDashboardHtml = () => `<!doctype html>
     }
 
     .command-actions {
-      display: inline-flex;
-      gap: 10px;
-      align-items: center;
-      flex-wrap: wrap;
-    }
-
-    .command-actions button {
-      background: linear-gradient(180deg, rgba(124, 58, 237, 0.96), rgba(109, 40, 217, 0.96));
-      color: #fff;
-      border: 1px solid rgba(109, 40, 217, 0.28);
+      display: none;
     }
 
     .status-line {
@@ -993,13 +984,6 @@ export const buildHermesDashboardHtml = () => `<!doctype html>
       padding-top: 0;
     }
 
-    .cards-pane .command-actions button,
-    .detail-pane .command-actions button {
-      padding: 11px 14px;
-      border-radius: 14px;
-      min-height: 44px;
-    }
-
     .cards-pane .search-field input[type="search"],
     .detail-pane .search-field input[type="search"] {
       min-height: 46px;
@@ -1058,13 +1042,9 @@ export const buildHermesDashboardHtml = () => `<!doctype html>
                   <label id="searchLabel" for="query">Search companies or cards</label>
                   <input id="query" type="search" placeholder="Type a company name or 17-digit card number" autocomplete="off" />
                 </div>
-                <div class="command-actions">
-                  <button id="search" class="primary-button" type="button">Search</button>
-                  <button id="refresh" class="secondary-button" type="button">Latest snapshot</button>
-                </div>
               </div>
               <div class="status-line">
-                <div id="status">Ready. Search a company or a card number to load the snapshot.</div>
+                <div id="status">Results update as you type.</div>
                 <div class="status-chip" id="modeChip">Cards view</div>
               </div>
             </section>
@@ -1156,9 +1136,6 @@ export const buildHermesDashboardHtml = () => `<!doctype html>
                   <label for="credentialsQuery">Credentials lookup</label>
                   <input id="credentialsQuery" type="search" placeholder="Search a company to inspect credentials" autocomplete="off" />
                 </div>
-                <div class="command-actions">
-                  <button id="credentialsRefresh" class="primary-button" type="button">Load credentials</button>
-                </div>
               </div>
               <div class="status-line">
                 <div id="credentialsStatus">Credentials view ready.</div>
@@ -1222,8 +1199,6 @@ export const buildHermesDashboardHtml = () => `<!doctype html>
 
     const queryInput = $('query');
     const revealInput = $('reveal');
-    const searchButton = $('search');
-    const refreshButton = $('refresh');
     const resultsList = $('resultsList');
     const credentialList = $('credentialList');
     const status = $('status');
@@ -1252,9 +1227,10 @@ export const buildHermesDashboardHtml = () => `<!doctype html>
     const credentialCompanyName = $('credentialCompanyName');
     const credentialCompanyKey = $('credentialCompanyKey');
     const credentialsQuery = $('credentialsQuery');
-    const credentialsRefresh = $('credentialsRefresh');
 
     const escapeHtml = ${escapeHtml.toString()};
+    let searchTimer = null;
+    let credentialsSearchTimer = null;
 
     const setStatus = function(message, error) {
       status.textContent = message;
@@ -1575,7 +1551,7 @@ export const buildHermesDashboardHtml = () => `<!doctype html>
       renderCompanyResults(merged);
 
       if (!trimmed) {
-        setStatus('Ready. Search a company or card number to load the unified snapshot.');
+        setStatus('Results update as you type.');
       } else {
         setStatus('Showing matched companies for "' + trimmed + '".');
       }
@@ -1594,13 +1570,6 @@ export const buildHermesDashboardHtml = () => `<!doctype html>
       var payload = await api(buildCompanyUrl(key));
       renderCompany(payload);
       setStatus('Loaded ' + (payload.companyName || payload.companyKey));
-    };
-
-    const loadCurrentView = function() {
-      if (state.lastCompanyKey) {
-        return loadCompany(state.lastCompanyKey);
-      }
-      return loadSearchResults(queryInput.value.trim());
     };
 
     const submitSearch = async function() {
@@ -1631,11 +1600,29 @@ export const buildHermesDashboardHtml = () => `<!doctype html>
       try {
         setView('cards');
         await loadSearchResults('');
-        setStatus('Ready. Search a company or card number to load the unified snapshot.');
+        setStatus('Results update as you type.');
       } catch (error) {
         setStatus(error.message, true);
         renderEmptyResults('Hermes API is not responding yet.');
       }
+    };
+
+    const scheduleCardsSearch = function(value) {
+      clearTimeout(searchTimer);
+      searchTimer = setTimeout(function() {
+        loadSearchResults(String(value || '').trim()).catch(function(error) {
+          setStatus(error.message, true);
+        });
+      }, 220);
+    };
+
+    const scheduleCredentialsSearch = function(value) {
+      clearTimeout(credentialsSearchTimer);
+      credentialsSearchTimer = setTimeout(function() {
+        loadSearchResults(String(value || '').trim()).catch(function(error) {
+          setStatus(error.message, true);
+        });
+      }, 220);
     };
 
     tabCardsButton.addEventListener('click', function() {
@@ -1645,27 +1632,6 @@ export const buildHermesDashboardHtml = () => `<!doctype html>
     tabCredentialsButton.addEventListener('click', function() {
       setView('credentials');
     });
-
-    searchButton.addEventListener('click', function() {
-      submitSearch().catch(function(error) {
-        setStatus(error.message, true);
-      });
-    });
-
-    refreshButton.addEventListener('click', function() {
-      loadCurrentView().catch(function(error) {
-        setStatus(error.message, true);
-      });
-    });
-
-    if (credentialsRefresh) {
-      credentialsRefresh.addEventListener('click', function() {
-        syncSearchFields(credentialsQuery ? credentialsQuery.value : queryInput.value);
-        submitSearch().catch(function(error) {
-          setStatus(error.message, true);
-        });
-      });
-    }
 
     refreshCompanyButton.addEventListener('click', function() {
       if (!state.lastCompanyKey) {
@@ -1687,12 +1653,7 @@ export const buildHermesDashboardHtml = () => `<!doctype html>
     queryInput.addEventListener('input', function() {
       var value = queryInput.value.trim();
       syncSearchFields(value);
-      clearTimeout(window.__hermesSearchTimer);
-      window.__hermesSearchTimer = setTimeout(function() {
-        loadSearchResults(value).catch(function(error) {
-          setStatus(error.message, true);
-        });
-      }, 220);
+      scheduleCardsSearch(value);
     });
 
     if (credentialsQuery) {
@@ -1706,7 +1667,9 @@ export const buildHermesDashboardHtml = () => `<!doctype html>
       });
 
       credentialsQuery.addEventListener('input', function() {
-        syncSearchFields(credentialsQuery.value.trim());
+        var value = credentialsQuery.value.trim();
+        syncSearchFields(value);
+        scheduleCredentialsSearch(value);
       });
     }
 
