@@ -1,7 +1,8 @@
 import { chromium } from 'playwright-core';
 import { ensureChromeDebugger, resolveChromeSettings } from './chrome.js';
 
-const OWNERS_TAB_NAMES = ['Owners', 'User management', 'Users', 'Owners & users'];
+const USERS_MANAGEMENT_TAB_NAMES = ['Users Management', 'User management', 'Users'];
+const OWNERS_TAB_NAMES = ['Owners', 'Owners & users'];
 const ACTION_MENU_TEXTS = ['...', 'More actions', 'Actions'];
 
 const firstVisible = async (locators) => {
@@ -16,16 +17,49 @@ const firstVisible = async (locators) => {
   return null;
 };
 
-const findOwnersNavigation = async (page) =>
-  firstVisible(OWNERS_TAB_NAMES.map((label) => page.getByRole('tab', { name: label, exact: false })))
-  || firstVisible(OWNERS_TAB_NAMES.map((label) => page.getByRole('button', { name: label, exact: false })))
-  || firstVisible(OWNERS_TAB_NAMES.map((label) => page.getByText(label, { exact: false })));
+const findNavigationItem = async (page, labels) =>
+  firstVisible(labels.map((label) => page.getByRole('tab', { name: label, exact: false })))
+  || firstVisible(labels.map((label) => page.getByRole('button', { name: label, exact: false })))
+  || firstVisible(labels.map((label) => page.getByRole('link', { name: label, exact: false })))
+  || firstVisible(labels.map((label) => page.getByText(label, { exact: false })));
+
+const expandUsersManagement = async (page) => {
+  const usersManagement = await findNavigationItem(page, USERS_MANAGEMENT_TAB_NAMES);
+  if (!usersManagement) {
+    return false;
+  }
+
+  const ariaExpanded = String(await usersManagement.getAttribute('aria-expanded').catch(() => '') || '').toLowerCase();
+  if (ariaExpanded !== 'true') {
+    await usersManagement.click({ timeoutMs: 15000 });
+    await page.waitForTimeout(600);
+  }
+
+  return true;
+};
+
+const findOwnersNavigation = async (page) => {
+  const directOwners = await findNavigationItem(page, OWNERS_TAB_NAMES);
+  if (directOwners) {
+    return directOwners;
+  }
+
+  const expanded = await expandUsersManagement(page);
+  if (!expanded) {
+    return null;
+  }
+
+  return findNavigationItem(page, OWNERS_TAB_NAMES);
+};
 
 const findSearchBox = async (page) =>
   firstVisible([
     page.getByRole('textbox', { name: 'Search', exact: false }),
+    page.getByRole('textbox', { name: 'Search company', exact: false }),
+    page.getByRole('textbox', { name: 'Company', exact: false }),
     page.getByPlaceholder('Search', { exact: false }),
     page.getByPlaceholder('Search company', { exact: false }),
+    page.getByPlaceholder('Search company name', { exact: false }),
     page.locator('input[type="search"]'),
     page.locator('input[type="text"]')
   ]);
@@ -109,13 +143,14 @@ const extractOwnerRowFields = async (row, companyName) => {
   const companyMatch = cleanedCells[0] || companyName || '';
   const nonActionCells = cleanedCells.filter((value) => !/^(?:\.{3}|more actions|actions|show password|copy(?: to clipboard)?)$/i.test(value));
   const usernameMatch = nonActionCells.find((value) => value !== companyMatch && value !== emailMatch && !/@/.test(value)) || '';
+  const ownerNameMatch = nonActionCells.find((value) => value !== companyMatch && value !== emailMatch && value !== usernameMatch && !/@/.test(value)) || '';
 
   return {
     rowCells: cleanedCells,
     companyName: companyMatch || companyName || '',
     ownerEmail: emailMatch || '',
     username: usernameMatch || '',
-    ownerName: ''
+    ownerName: ownerNameMatch || ''
   };
 };
 
@@ -150,6 +185,7 @@ export const captureOwnerAccessForCompany = async (companyName, options = {}) =>
     throw new Error('Owners navigation was not found in CMP');
   }
   await ownersNav.click({ timeoutMs: 15000 });
+  await activePage.waitForLoadState('networkidle').catch(() => {});
 
   const searchBox = await findSearchBox(activePage);
   if (!searchBox) {
