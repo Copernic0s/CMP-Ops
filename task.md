@@ -2,9 +2,10 @@
 
 ## Active
 
-- [ ] Keep the dashboard polished as the main operator surface with a left company list, center detail view, and reserved password section
+- [ ] Keep the dashboard polished as the main operator surface with Cards and Credentials tabs, a left company list, and a center detail view
 - [ ] Confirm the final branding text for the header and any logo or badge treatment
 - [ ] Define the exact password behavior for the future secure reveal section
+- [ ] Keep the CMP scraping bot as a separate pending task
 - [ ] Keep the inventory checkpoint workflow available for future resyncs
 
 ## Done

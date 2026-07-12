@@ -13,6 +13,7 @@
 - Hermes auto-loads `.env` at startup, so Supabase credentials no longer depend on manual PowerShell export.
 - Hermes now serves a local dashboard at `/dashboard` with a left-side company list, a center detail surface, and merged snapshots.
 - The dashboard now uses a unified company/card search bar with up to 10 matched companies in the scrollable left rail.
+- The dashboard now has `Cards` and `Credentials` tabs, with `Cards` owning the search flow and `Credentials` reserved for the email/password surface.
 - The dashboard layout has been reshaped so the center panel owns the active company detail, actions, and a reserved password section.
 - `AGENT.md` already exists and remains the repo-wide operating guide.
 - The live dashboard has been reviewed and is readable, dark, and operator-focused.
@@ -51,5 +52,6 @@
 ## Next Checkpoints
 
 - keep the dashboard polished as the main operator surface with the left list + center detail flow
+- keep the CMP scraping bot as a separate pending task
 - decide the final password reveal behavior for the reserved password section
 - keep using the inventory checkpoint workflow instead of re-running from page 1

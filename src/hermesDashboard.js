@@ -335,10 +335,14 @@ export const buildHermesDashboardHtml = () => `<!doctype html>
 
     .hero {
       border-radius: 28px;
-      padding: 26px 28px;
-      min-height: 182px;
+      padding: 18px 22px;
+      min-height: auto;
       position: relative;
       overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
     }
 
     .hero::after {
@@ -353,23 +357,70 @@ export const buildHermesDashboardHtml = () => `<!doctype html>
     }
 
     .hero .eyebrow {
-      margin-bottom: 12px;
+      margin-bottom: 8px;
     }
 
     .hero h2 {
       margin: 0;
-      font-size: clamp(28px, 3vw, 46px);
-      line-height: 0.98;
+      font-size: clamp(24px, 2.2vw, 32px);
+      line-height: 1;
       letter-spacing: -0.05em;
-      max-width: 12ch;
+      max-width: 14ch;
     }
 
     .hero p {
-      margin: 14px 0 0;
-      max-width: 78ch;
+      margin: 8px 0 0;
+      max-width: 68ch;
       color: var(--muted);
       font-size: 14px;
       line-height: 1.6;
+    }
+
+    .hero-copy {
+      position: relative;
+      z-index: 1;
+    }
+
+    .hero-actions {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .tab-strip {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px;
+      border-radius: 999px;
+      background: rgba(10, 15, 21, 0.72);
+      border: 1px solid rgba(153, 171, 195, 0.16);
+    }
+
+    .tab-button {
+      appearance: none;
+      border: 0;
+      border-radius: 999px;
+      padding: 10px 14px;
+      background: transparent;
+      color: var(--muted);
+      font: inherit;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 120ms ease, color 120ms ease, transform 120ms ease;
+    }
+
+    .tab-button:hover {
+      transform: translateY(-1px);
+    }
+
+    .tab-button.is-active {
+      background: rgba(127, 224, 199, 0.14);
+      color: var(--accent);
     }
 
     .command-bar {
@@ -494,6 +545,15 @@ export const buildHermesDashboardHtml = () => `<!doctype html>
       border-radius: 50%;
       background: var(--accent);
       box-shadow: 0 0 0 6px rgba(127, 224, 199, 0.08);
+    }
+
+    .view-panel {
+      display: grid;
+      gap: 18px;
+    }
+
+    .view-panel.is-hidden {
+      display: none;
     }
 
     .results-panel {
@@ -780,6 +840,11 @@ export const buildHermesDashboardHtml = () => `<!doctype html>
       .detail-top {
         grid-template-columns: 1fr;
       }
+
+      .hero {
+        flex-direction: column;
+        align-items: flex-start;
+      }
     }
   </style>
 </head>
@@ -789,7 +854,7 @@ export const buildHermesDashboardHtml = () => `<!doctype html>
       <aside class="sidebar">
         <div class="sidebar-brand">
           <div class="eyebrow">Ops Console</div>
-          <h1 class="brand-title">United Cabinet ALMAFUEL</h1>
+          <h1 class="brand-title">Almafuel Cards</h1>
         </div>
 
         <section class="results-panel">
@@ -805,13 +870,22 @@ export const buildHermesDashboardHtml = () => `<!doctype html>
 
       <main class="workspace">
         <section class="hero">
-          <div class="eyebrow">United Cabinet ALMAFUEL</div>
-          <h2>Company ops, cards, and passwords in one console.</h2>
-          <p>
-            Search a company or a 17-digit card number, then open the company detail view in the center to inspect cards, access rows, and the upcoming password section.
-          </p>
+          <div class="hero-copy">
+            <div class="eyebrow">Almafuel Cards</div>
+            <h2>Company cards and credentials in one console.</h2>
+            <p>
+              Use Cards to search by company or 17-digit card number. Credentials will live in the second subpage.
+            </p>
+          </div>
+          <div class="hero-actions">
+            <div class="tab-strip" role="tablist" aria-label="Dashboard views">
+              <button id="tabCards" class="tab-button is-active" type="button" data-view="cards">Cards</button>
+              <button id="tabCredentials" class="tab-button" type="button" data-view="credentials">Credentials</button>
+            </div>
+          </div>
         </section>
 
+        <section id="cardsView" class="view-panel">
         <section class="command-bar">
           <div class="command-top">
             <div class="search-field">
@@ -978,6 +1052,46 @@ export const buildHermesDashboardHtml = () => `<!doctype html>
         <div class="footnote">
           Hermes keeps passwords hidden until you explicitly reveal them.
         </div>
+        </section>
+
+        <section id="credentialsView" class="view-panel is-hidden">
+          <section class="panel password-panel">
+            <div class="section-head">
+              <h3>Credentials</h3>
+              <div class="hint">Email and password flow goes here</div>
+            </div>
+            <div class="password-placeholder">
+              <strong>Pending implementation.</strong>
+              This tab will become the credential-focused area with email, password, reveal, and copy behavior once you confirm the final rules.
+            </div>
+          </section>
+
+          <section class="panel">
+            <div class="section-head">
+              <h3>Selected company credentials</h3>
+              <div class="hint" id="credentialHint">No company loaded</div>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Owner</th>
+                    <th>Email</th>
+                    <th>Username</th>
+                    <th>Password</th>
+                  </tr>
+                </thead>
+                <tbody id="credentialBody">
+                  <tr><td colspan="4" class="empty">Load a company from Cards first.</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <div class="footnote">
+            Credentials stay server-side until the reveal rules are defined.
+          </div>
+        </section>
       </main>
     </div>
   </div>
@@ -1002,8 +1116,12 @@ export const buildHermesDashboardHtml = () => `<!doctype html>
     const resultsList = $('resultsList');
     const status = $('status');
     const modeChip = $('modeChip');
+    const tabCardsButton = $('tabCards');
+    const tabCredentialsButton = $('tabCredentials');
     const resultsTitle = $('resultsTitle');
     const resultsCount = $('resultsCount');
+    const cardsView = $('cardsView');
+    const credentialsView = $('credentialsView');
     const detailCompanyName = $('detailCompanyName');
     const detailCompanyKey = $('detailCompanyKey');
     const detailOwnerName = $('detailOwnerName');
@@ -1016,12 +1134,23 @@ export const buildHermesDashboardHtml = () => `<!doctype html>
     const copyUsernameButton = $('copyUsername');
     const copyPasswordButton = $('copyPassword');
     const refreshCompanyButton = $('refreshCompany');
+    const credentialHint = $('credentialHint');
+    const credentialBody = $('credentialBody');
 
     const escapeHtml = ${escapeHtml.toString()};
 
     const setStatus = function(message, error) {
       status.textContent = message;
       status.style.color = error ? 'var(--danger)' : 'var(--muted)';
+    };
+
+    const setView = function(view) {
+      var activeView = view === 'credentials' ? 'credentials' : 'cards';
+      cardsView.classList.toggle('is-hidden', activeView !== 'cards');
+      credentialsView.classList.toggle('is-hidden', activeView !== 'credentials');
+      tabCardsButton.classList.toggle('is-active', activeView === 'cards');
+      tabCredentialsButton.classList.toggle('is-active', activeView === 'credentials');
+      modeChip.textContent = activeView === 'cards' ? 'Cards view' : 'Credentials view';
     };
 
     const api = async function(path) {
@@ -1164,6 +1293,26 @@ export const buildHermesDashboardHtml = () => `<!doctype html>
       }).join('');
     };
 
+    const renderCredentialRows = function(rows, revealPassword) {
+      if (!rows.length) {
+        credentialHint.textContent = 'No company loaded';
+        credentialBody.innerHTML = '<tr><td colspan="4" class="empty">Load a company from Cards first.</td></tr>';
+        return;
+      }
+
+      credentialHint.textContent = revealPassword ? 'Passwords visible' : 'Passwords masked';
+      credentialBody.innerHTML = rows.map(function(row) {
+        return (
+          '<tr>' +
+            '<td>' + escapeHtml(row.owner_name || '—') + '</td>' +
+            '<td>' + escapeHtml(row.owner_email || '—') + '</td>' +
+            '<td>' + escapeHtml(row.username || '—') + '</td>' +
+            '<td>' + (revealPassword ? escapeHtml(row.password_ciphertext || '—') : '<span class="pill warn">Hidden</span>') + '</td>' +
+          '</tr>'
+        );
+      }).join('');
+    };
+
     const renderInventoryRows = function(rows) {
       if (!rows.length) {
         $('inventoryBody').innerHTML = '<tr><td colspan="5" class="empty">No inventory rows found for this company.</td></tr>';
@@ -1249,6 +1398,7 @@ export const buildHermesDashboardHtml = () => `<!doctype html>
       renderOwnerRows(payload.ownerAccess || [], payload.revealPassword);
       renderCardRows(payload.cardStatus || []);
       renderInventoryRows(payload.cardInventory || []);
+      renderCredentialRows(payload.ownerAccess || [], payload.revealPassword);
       renderSelectedCompany(payload);
     };
 
@@ -1324,6 +1474,7 @@ export const buildHermesDashboardHtml = () => `<!doctype html>
 
     const boot = async function() {
       try {
+        setView('cards');
         await loadSearchResults('');
         setStatus('Ready. Search a company or card number to load the unified snapshot.');
       } catch (error) {
@@ -1331,6 +1482,14 @@ export const buildHermesDashboardHtml = () => `<!doctype html>
         renderEmptyResults('Hermes API is not responding yet.');
       }
     };
+
+    tabCardsButton.addEventListener('click', function() {
+      setView('cards');
+    });
+
+    tabCredentialsButton.addEventListener('click', function() {
+      setView('credentials');
+    });
 
     searchButton.addEventListener('click', function() {
       submitSearch().catch(function(error) {
