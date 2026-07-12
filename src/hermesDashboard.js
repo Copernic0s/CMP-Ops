@@ -16,21 +16,21 @@ export const buildHermesDashboardHtml = () => `<!doctype html>
     @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap');
 
     :root {
-      color-scheme: dark;
-      --bg: #090d12;
-      --panel: rgba(14, 20, 28, 0.94);
-      --panel-2: rgba(18, 26, 36, 0.96);
-      --panel-3: rgba(11, 16, 22, 0.88);
-      --line: rgba(153, 171, 195, 0.18);
-      --line-strong: rgba(153, 171, 195, 0.28);
-      --text: #eef3f9;
-      --muted: #93a6bb;
-      --accent: #7fe0c7;
-      --accent-2: #ffbf69;
-      --danger: #ff8d8d;
-      --success: #7fe0c7;
-      --warning: #ffbf69;
-      --shadow: 0 24px 60px rgba(0, 0, 0, 0.32);
+      color-scheme: light;
+      --bg: #f4f6fb;
+      --panel: rgba(255, 255, 255, 0.72);
+      --panel-2: rgba(255, 255, 255, 0.82);
+      --panel-3: rgba(248, 249, 252, 0.88);
+      --line: rgba(82, 92, 120, 0.12);
+      --line-strong: rgba(82, 92, 120, 0.18);
+      --text: #151726;
+      --muted: #657085;
+      --accent: #6d28d9;
+      --accent-2: #7c3aed;
+      --danger: #c2410c;
+      --success: #2563eb;
+      --warning: #a16207;
+      --shadow: 0 20px 44px rgba(31, 41, 55, 0.08);
       --radius: 22px;
     }
 
@@ -39,9 +39,9 @@ export const buildHermesDashboardHtml = () => `<!doctype html>
     body {
       margin: 0;
       background:
-        radial-gradient(circle at top right, rgba(127, 224, 199, 0.09), transparent 24%),
-        radial-gradient(circle at bottom left, rgba(255, 191, 105, 0.08), transparent 26%),
-        linear-gradient(180deg, #070b10 0%, #0b1118 100%);
+        radial-gradient(circle at top right, rgba(124, 58, 237, 0.12), transparent 24%),
+        radial-gradient(circle at bottom left, rgba(109, 40, 217, 0.08), transparent 26%),
+        linear-gradient(180deg, #f8f9fd 0%, #eff2f8 100%);
       color: var(--text);
       font-family: 'IBM Plex Sans', system-ui, sans-serif;
       letter-spacing: 0;
@@ -53,11 +53,11 @@ export const buildHermesDashboardHtml = () => `<!doctype html>
       inset: 0;
       pointer-events: none;
       background-image:
-        linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+        linear-gradient(rgba(21, 23, 38, 0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(21, 23, 38, 0.025) 1px, transparent 1px);
       background-size: 42px 42px;
-      opacity: 0.12;
-      mask-image: linear-gradient(180deg, rgba(0,0,0,0.7), rgba(0,0,0,0.1));
+      opacity: 0.4;
+      mask-image: linear-gradient(180deg, rgba(0,0,0,0.55), rgba(0,0,0,0.05));
     }
 
     .shell {
@@ -244,8 +244,8 @@ export const buildHermesDashboardHtml = () => `<!doctype html>
     .company-stat {
       border-radius: 18px;
       padding: 12px;
-      background: rgba(8, 12, 17, 0.72);
-      border: 1px solid rgba(153, 171, 195, 0.14);
+      background: rgba(255, 255, 255, 0.84);
+      border: 1px solid rgba(82, 92, 120, 0.12);
     }
 
     .company-stat .label {
@@ -262,6 +262,7 @@ export const buildHermesDashboardHtml = () => `<!doctype html>
       line-height: 1.1;
       font-weight: 700;
       letter-spacing: -0.03em;
+      color: var(--text);
     }
 
     .quick-actions {
@@ -435,10 +436,10 @@ export const buildHermesDashboardHtml = () => `<!doctype html>
       align-items: center;
       justify-content: space-between;
       gap: 14px;
-      padding: 12px 18px;
+      padding: 14px 18px;
       border-radius: 22px;
-      background: rgba(10, 15, 21, 0.78);
-      border: 1px solid rgba(153, 171, 195, 0.16);
+      background: rgba(255, 255, 255, 0.72);
+      border: 1px solid rgba(82, 92, 120, 0.12);
       margin-bottom: 8px;
       position: sticky;
       top: 18px;
@@ -452,7 +453,7 @@ export const buildHermesDashboardHtml = () => `<!doctype html>
     }
 
     .app-nav .brand-mini strong {
-      font-size: 22px;
+      font-size: 24px;
       line-height: 1;
       letter-spacing: -0.04em;
     }
@@ -486,8 +487,8 @@ export const buildHermesDashboardHtml = () => `<!doctype html>
     }
 
     .nav-link.is-active {
-      color: var(--text);
-      background: rgba(127, 224, 199, 0.12);
+      color: var(--accent);
+      background: rgba(109, 40, 217, 0.1);
     }
 
     .nav-link:hover {
@@ -496,7 +497,7 @@ export const buildHermesDashboardHtml = () => `<!doctype html>
 
     .command-top {
       display: grid;
-      grid-template-columns: minmax(0, 1fr) auto auto;
+      grid-template-columns: minmax(0, 1fr) auto;
       gap: 12px;
       align-items: center;
     }
@@ -536,7 +537,7 @@ export const buildHermesDashboardHtml = () => `<!doctype html>
       width: 100%;
       border: 1px solid var(--line);
       border-radius: 16px;
-      background: rgba(7, 11, 16, 0.95);
+      background: rgba(255, 255, 255, 0.86);
       color: var(--text);
       padding: 14px 15px;
       font: inherit;
@@ -544,8 +545,8 @@ export const buildHermesDashboardHtml = () => `<!doctype html>
     }
 
     .search-field input[type="search"]:focus {
-      border-color: rgba(127, 224, 199, 0.48);
-      box-shadow: 0 0 0 4px rgba(127, 224, 199, 0.08);
+      border-color: rgba(124, 58, 237, 0.5);
+      box-shadow: 0 0 0 4px rgba(124, 58, 237, 0.08);
     }
 
     .toggle {
@@ -573,9 +574,9 @@ export const buildHermesDashboardHtml = () => `<!doctype html>
     }
 
     .command-actions button {
-      background: rgba(10, 15, 21, 0.9);
-      color: var(--text);
-      border: 1px solid var(--line);
+      background: linear-gradient(180deg, rgba(124, 58, 237, 0.96), rgba(109, 40, 217, 0.96));
+      color: #fff;
+      border: 1px solid rgba(109, 40, 217, 0.28);
     }
 
     .status-line {
@@ -595,7 +596,7 @@ export const buildHermesDashboardHtml = () => `<!doctype html>
       gap: 8px;
       padding: 8px 12px;
       border-radius: 999px;
-      background: rgba(127, 224, 199, 0.12);
+      background: rgba(109, 40, 217, 0.1);
       color: var(--accent);
       font-family: 'IBM Plex Mono', ui-monospace, monospace;
       font-size: 12px;
@@ -629,8 +630,8 @@ export const buildHermesDashboardHtml = () => `<!doctype html>
 
     .cards-layout {
       display: grid;
-      grid-template-columns: minmax(390px, 460px) minmax(0, 1fr);
-      gap: 16px;
+      grid-template-columns: minmax(360px, 40%) minmax(0, 1fr);
+      gap: 18px;
       align-items: start;
     }
 
@@ -646,13 +647,14 @@ export const buildHermesDashboardHtml = () => `<!doctype html>
 
     .cards-pane {
       display: grid;
-      min-height: calc(100vh - 220px);
+      grid-template-rows: auto auto minmax(0, 1fr);
+      min-height: calc(100vh - 152px);
     }
 
     .cards-pane-head,
     .detail-pane-head {
       padding: 16px 18px 12px;
-      border-bottom: 1px solid rgba(153, 171, 195, 0.1);
+      border-bottom: 1px solid rgba(82, 92, 120, 0.09);
       display: flex;
       justify-content: space-between;
       gap: 12px;
@@ -668,6 +670,7 @@ export const buildHermesDashboardHtml = () => `<!doctype html>
     .cards-pane-body {
       padding: 12px 12px 14px;
       overflow: auto;
+      min-height: 0;
     }
 
     .cards-pane .result-list {
@@ -678,13 +681,16 @@ export const buildHermesDashboardHtml = () => `<!doctype html>
 
     .detail-pane {
       display: grid;
-      min-height: calc(100vh - 220px);
+      grid-template-rows: auto minmax(0, 1fr);
+      min-height: calc(100vh - 152px);
     }
 
     .detail-pane-body {
       padding: 18px;
       display: grid;
       gap: 14px;
+      min-height: 0;
+      overflow: auto;
     }
 
     .hero-mini {
@@ -746,8 +752,8 @@ export const buildHermesDashboardHtml = () => `<!doctype html>
     .result-item {
       border-radius: 18px;
       padding: 14px 15px;
-      background: rgba(8, 12, 17, 0.76);
-      border: 1px solid rgba(153, 171, 195, 0.14);
+      background: rgba(255, 255, 255, 0.84);
+      border: 1px solid rgba(82, 92, 120, 0.12);
       display: flex;
       justify-content: space-between;
       gap: 12px;
@@ -758,7 +764,7 @@ export const buildHermesDashboardHtml = () => `<!doctype html>
     }
 
     .result-item:hover {
-      border-color: rgba(127, 224, 199, 0.34);
+      border-color: rgba(124, 58, 237, 0.28);
       transform: translateY(-1px);
     }
 
@@ -788,17 +794,17 @@ export const buildHermesDashboardHtml = () => `<!doctype html>
     }
 
     .pill.ok {
-      background: rgba(127, 224, 199, 0.12);
-      color: var(--accent);
+      background: rgba(37, 99, 235, 0.1);
+      color: #1d4ed8;
     }
 
     .pill.warn {
-      background: rgba(255, 191, 105, 0.12);
+      background: rgba(124, 58, 237, 0.1);
       color: var(--accent-2);
     }
 
     .pill.bad {
-      background: rgba(255, 141, 141, 0.12);
+      background: rgba(194, 65, 12, 0.1);
       color: var(--danger);
     }
 
@@ -859,8 +865,8 @@ export const buildHermesDashboardHtml = () => `<!doctype html>
     .detail-note {
       border-radius: 20px;
       padding: 16px;
-      background: rgba(8, 12, 17, 0.64);
-      border: 1px dashed rgba(153, 171, 195, 0.2);
+      background: rgba(255, 255, 255, 0.7);
+      border: 1px dashed rgba(82, 92, 120, 0.2);
       color: var(--muted);
       line-height: 1.55;
       font-size: 13px;
@@ -884,8 +890,8 @@ export const buildHermesDashboardHtml = () => `<!doctype html>
     .password-placeholder {
       border-radius: 18px;
       padding: 18px;
-      background: rgba(8, 12, 17, 0.68);
-      border: 1px dashed rgba(153, 171, 195, 0.18);
+      background: rgba(255, 255, 255, 0.68);
+      border: 1px dashed rgba(82, 92, 120, 0.18);
       color: var(--muted);
       display: grid;
       gap: 8px;
@@ -920,8 +926,8 @@ export const buildHermesDashboardHtml = () => `<!doctype html>
     .table-wrap {
       overflow: auto;
       border-radius: 16px;
-      border: 1px solid rgba(153, 171, 195, 0.14);
-      background: rgba(8, 12, 17, 0.68);
+      border: 1px solid rgba(82, 92, 120, 0.12);
+      background: rgba(255, 255, 255, 0.74);
     }
 
     table {
@@ -941,22 +947,22 @@ export const buildHermesDashboardHtml = () => `<!doctype html>
       position: sticky;
       top: 0;
       z-index: 1;
-      background: rgba(10, 15, 21, 0.98);
-      color: var(--muted);
+      background: rgba(246, 248, 252, 0.98);
+      color: #6b7280;
       text-transform: uppercase;
       letter-spacing: 0.07em;
       font-size: 11px;
     }
 
     tr:hover td {
-      background: rgba(127, 224, 199, 0.03);
+      background: rgba(109, 40, 217, 0.03);
     }
 
     .empty {
       padding: 18px;
       text-align: center;
       color: var(--muted);
-      background: rgba(8, 12, 17, 0.45);
+      background: rgba(255, 255, 255, 0.55);
     }
 
     .mono {
@@ -969,6 +975,34 @@ export const buildHermesDashboardHtml = () => `<!doctype html>
       line-height: 1.45;
       text-align: center;
       padding: 2px 0 10px;
+    }
+
+    .cards-pane .command-bar,
+    .detail-pane .command-bar {
+      border-radius: 0;
+      border: 0;
+      box-shadow: none;
+      background: transparent;
+      backdrop-filter: none;
+      padding: 16px 18px 0;
+      margin: 0;
+    }
+
+    .cards-pane .status-line,
+    .detail-pane .status-line {
+      padding-top: 0;
+    }
+
+    .cards-pane .command-actions button,
+    .detail-pane .command-actions button {
+      padding: 11px 14px;
+      border-radius: 14px;
+      min-height: 44px;
+    }
+
+    .cards-pane .search-field input[type="search"],
+    .detail-pane .search-field input[type="search"] {
+      min-height: 46px;
     }
 
     @media (max-width: 1240px) {
@@ -1006,7 +1040,6 @@ export const buildHermesDashboardHtml = () => `<!doctype html>
   <div class="shell">
     <header class="app-nav">
       <div class="brand-mini">
-        <span>Ops Console</span>
         <strong>Almafuel Cards</strong>
       </div>
       <div class="nav-links" role="tablist" aria-label="Dashboard views">
@@ -1017,25 +1050,25 @@ export const buildHermesDashboardHtml = () => `<!doctype html>
 
     <main class="workspace">
       <section id="cardsView" class="view-panel">
-        <section class="command-bar">
-          <div class="command-top">
-            <div class="search-field">
-              <label id="searchLabel" for="query">Search companies or cards</label>
-              <input id="query" type="search" placeholder="Type a company name or 17-digit card number" autocomplete="off" />
-            </div>
-            <div class="command-actions">
-              <button id="search" class="primary-button" type="button">Search</button>
-              <button id="refresh" class="secondary-button" type="button">Latest snapshot</button>
-            </div>
-          </div>
-          <div class="status-line">
-            <div id="status">Ready. Search a company or a card number to load the snapshot.</div>
-            <div class="status-chip" id="modeChip">Cards view</div>
-          </div>
-        </section>
-
         <section class="cards-layout">
           <aside class="cards-pane">
+            <section class="command-bar">
+              <div class="command-top">
+                <div class="search-field">
+                  <label id="searchLabel" for="query">Search companies or cards</label>
+                  <input id="query" type="search" placeholder="Type a company name or 17-digit card number" autocomplete="off" />
+                </div>
+                <div class="command-actions">
+                  <button id="search" class="primary-button" type="button">Search</button>
+                  <button id="refresh" class="secondary-button" type="button">Latest snapshot</button>
+                </div>
+              </div>
+              <div class="status-line">
+                <div id="status">Ready. Search a company or a card number to load the snapshot.</div>
+                <div class="status-chip" id="modeChip">Cards view</div>
+              </div>
+            </section>
+
             <div class="cards-pane-head">
               <div>
                 <h3>Companies</h3>
@@ -1048,15 +1081,13 @@ export const buildHermesDashboardHtml = () => `<!doctype html>
           </aside>
 
           <section class="detail-pane">
-            <div class="detail-pane-head">
+            <div class="detail-pane-body">
               <div class="hero-mini">
                 <div class="eyebrow">Active company</div>
                 <h2 id="detailCompanyName">No company loaded</h2>
                 <p id="detailCompanyKey">Search or select a company from the left rail.</p>
               </div>
-            </div>
 
-            <div class="detail-pane-body">
               <div class="company-stats">
                 <div class="company-stat">
                   <div class="label">Card count</div>
@@ -1071,8 +1102,8 @@ export const buildHermesDashboardHtml = () => `<!doctype html>
                   <div class="value" id="detailInactiveCount">0</div>
                 </div>
                 <div class="company-stat">
-                  <div class="label">Owners</div>
-                  <div class="value" id="detailOwnersCount">0</div>
+                  <div class="label">Last sync</div>
+                  <div class="value" id="detailLastSync">—</div>
                 </div>
               </div>
 
@@ -1117,24 +1148,24 @@ export const buildHermesDashboardHtml = () => `<!doctype html>
       </section>
 
       <section id="credentialsView" class="view-panel is-hidden">
-        <section class="command-bar">
-          <div class="command-top">
-            <div class="search-field">
-              <label for="credentialsQuery">Credentials lookup</label>
-              <input id="credentialsQuery" type="search" placeholder="Search a company to inspect credentials" autocomplete="off" />
-            </div>
-            <div class="command-actions">
-              <button id="credentialsRefresh" class="primary-button" type="button">Load credentials</button>
-            </div>
-          </div>
-          <div class="status-line">
-            <div id="credentialsStatus">Credentials view ready.</div>
-            <div class="status-chip">Credentials view</div>
-          </div>
-        </section>
-
         <section class="cards-layout">
           <aside class="cards-pane">
+            <section class="command-bar">
+              <div class="command-top">
+                <div class="search-field">
+                  <label for="credentialsQuery">Credentials lookup</label>
+                  <input id="credentialsQuery" type="search" placeholder="Search a company to inspect credentials" autocomplete="off" />
+                </div>
+                <div class="command-actions">
+                  <button id="credentialsRefresh" class="primary-button" type="button">Load credentials</button>
+                </div>
+              </div>
+              <div class="status-line">
+                <div id="credentialsStatus">Credentials view ready.</div>
+                <div class="status-chip">Credentials view</div>
+              </div>
+            </section>
+
             <div class="cards-pane-head">
               <div>
                 <h3>Credential companies</h3>
@@ -1147,14 +1178,13 @@ export const buildHermesDashboardHtml = () => `<!doctype html>
           </aside>
 
           <section class="detail-pane">
-            <div class="detail-pane-head">
+            <div class="detail-pane-body">
               <div class="hero-mini">
                 <div class="eyebrow">Credentials</div>
                 <h2 id="credentialCompanyName">No company selected</h2>
                 <p id="credentialCompanyKey">Email and password details will appear here.</p>
               </div>
-            </div>
-            <div class="detail-pane-body">
+
               <div class="table-wrap">
                 <table>
                   <thead>
@@ -1208,10 +1238,10 @@ export const buildHermesDashboardHtml = () => `<!doctype html>
     const detailCompanyKey = $('detailCompanyKey');
     const detailOwnerName = $('detailOwnerName');
     const detailNote = $('detailNote');
-    const detailOwnersCount = $('detailOwnersCount');
     const detailCardsCount = $('detailCardsCount');
     const detailActiveCount = $('detailActiveCount');
     const detailInactiveCount = $('detailInactiveCount');
+    const detailLastSync = $('detailLastSync');
     const copyEmailButton = $('copyEmail');
     const copyUsernameButton = $('copyUsername');
     const copyPasswordButton = $('copyPassword');
@@ -1468,8 +1498,23 @@ export const buildHermesDashboardHtml = () => `<!doctype html>
       var summary = payload && payload.summary ? payload.summary : {};
       var activeCards = 0;
       var inactiveCards = 0;
+      var latestSyncedAt = '';
+      var latestSyncedTime = 0;
+
+      var updateLatestSync = function(row) {
+        var value = String(row && row.last_synced_at ? row.last_synced_at : '').trim();
+        if (!value) return;
+        var parsed = Date.parse(value);
+        if (!Number.isFinite(parsed) || parsed < latestSyncedTime) return;
+        latestSyncedTime = parsed;
+        latestSyncedAt = value;
+      };
+
+      (payload && payload.ownerAccess ? payload.ownerAccess : []).forEach(updateLatestSync);
+      (payload && payload.cardStatus ? payload.cardStatus : []).forEach(updateLatestSync);
 
       (payload && payload.cardInventory ? payload.cardInventory : []).forEach(function(row) {
+        updateLatestSync(row);
         var companyStatus = String(row.company_status || '').toLowerCase();
         var cardStatus = String(row.card_status || '').toLowerCase();
         if (companyStatus.includes('active') || cardStatus.includes('active')) {
@@ -1484,10 +1529,10 @@ export const buildHermesDashboardHtml = () => `<!doctype html>
         ? (payload.companyKey + ' · ' + String(summary.cardInventoryCount || 0) + ' cards')
         : 'Search or select a company from the left rail.';
 
-      detailOwnersCount.textContent = String(summary.ownerAccessCount || 0);
       detailCardsCount.textContent = String((summary.cardStatusCount || 0) + (summary.cardInventoryCount || 0));
       detailActiveCount.textContent = String(activeCards);
       detailInactiveCount.textContent = String(inactiveCards);
+      detailLastSync.textContent = latestSyncedAt ? new Date(latestSyncedAt).toLocaleString() : '—';
 
     };
 

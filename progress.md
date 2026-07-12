@@ -14,11 +14,11 @@
 - Hermes now serves a local dashboard at `/dashboard` with a left-side company list, a center detail surface, and merged snapshots.
 - The dashboard now uses a unified company/card search bar with up to 10 matched companies in the scrollable left rail.
 - The dashboard now has `Cards` and `Credentials` tabs, with `Cards` owning the search flow and `Credentials` reserved for the email/password surface.
-- The dashboard layout has been reshaped so the center panel owns the active company detail, actions, and a reserved password section.
-- The `Cards` view is being flattened toward an Indeed-like layout: compact header, strong search bar, left company rail, and a single active detail area.
-- Legacy dashboard blocks in the `Cards` flow are being hidden so the interface can shed the older stacked-card look.
+- The dashboard layout has been reshaped so the center panel owns the active company detail, metrics, and the inventory table.
+- The `Cards` view has been flattened into a light split-pane layout inspired by the Indeed reference: compact header, search in the left rail, left company list, and a single active detail area.
+- Legacy stacked blocks in the `Cards` flow have been removed from the visible UI so the interface reads like a dashboard instead of a demo panel.
 - `AGENT.md` already exists and remains the repo-wide operating guide.
-- The live dashboard has been reviewed and is readable, dark, and operator-focused.
+- The live dashboard has been reviewed and is now readable, light, and operator-focused.
 
 ## What Works
 
@@ -35,12 +35,14 @@
 - automatic `.env` loading on boot
 - local dashboard for company search, card search, and merged data review
 - unified dashboard search flow with a left-side company list and a center detail view
+- the live dashboard has a split-pane light theme with search embedded in the company rail
 - project docs for task, progress, and agent guidance
 
 ## What Broke Recently
 
 - pagination is still the most fragile part of the worker stack
 - the worker needs a safer path for repeated runs and checkpointed inventory rescans
+- the CMP sidebar changed labels, so the owners worker needs selector refreshes against the live app
 
 ## Current Workaround
 
@@ -50,6 +52,7 @@
 - stop expanding the crawl until the pagination path is stable
 - use the local Hermes API for read-only inspection of latest snapshots
 - keep the dashboard as the main operator entry point
+- keep the bot route discovery aligned to the live CMP menu (`Users Management` and `Company account cards`)
 
 ## Next Checkpoints
 
