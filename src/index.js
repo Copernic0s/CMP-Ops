@@ -2,9 +2,10 @@ import { DEFAULT_PORTFOLIO_SHEET_NAME, DEFAULT_PORTFOLIO_SOURCE_URL, loadPortfol
 import { captureOwnerAccessForCompany } from './cmpOwners.js';
 import { startHermesApi } from './hermesApi.js';
 import { loadLocalEnvFile } from './env.js';
-import { createHermesSupabaseClient } from './hermesStore.js';
+import { createHermesSupabaseClient, upsertOwnerAccessRows } from './hermesStore.js';
 import { loadHermesSnapshot } from './hermesRead.js';
 import { runCardInventorySync, runCardStatusSync, runOwnersSync } from './hermesSync.js';
+import { normalizeCompanyKey } from './companyKey.js';
 
 const boot = async () => {
   const envLoad = loadLocalEnvFile();
@@ -37,7 +38,34 @@ const boot = async () => {
       if (process.env.HERMES_TARGET_COMPANY) {
         const companyName = String(process.env.HERMES_TARGET_COMPANY || '').trim();
         const ownerResult = await captureOwnerAccessForCompany(companyName, { baseUrl });
+        const companyRecord =
+          portfolio.companies.find((company) => String(company.companyName || '').trim().toLowerCase() === companyName.toLowerCase()) ||
+          portfolio.companies.find((company) => normalizeCompanyKey(company.companyName || '') === normalizeCompanyKey(companyName)) ||
+          {
+            companyName,
+            companyKey: normalizeCompanyKey(companyName)
+          };
+        const now = new Date().toISOString();
+        await upsertOwnerAccessRows(supabase, [{
+          company_key: companyRecord.companyKey,
+          company_name: companyRecord.companyName,
+          owner_name: ownerResult.ownerName || null,
+          owner_email: ownerResult.ownerEmail || null,
+          username: ownerResult.username || null,
+          password_ciphertext: ownerResult.password || null,
+          password_hint: ownerResult.passwordPopup || null,
+          password_reference: ownerResult.rowSummary || null,
+          last_synced_at: now,
+          source: 'cmp',
+          source_metadata: {
+            row_cells: ownerResult.rowCells || [],
+            popup_text: ownerResult.passwordPopup || null,
+            row_text: ownerResult.rowText || null
+          },
+          updated_at: now
+        }]);
         console.log(JSON.stringify(ownerResult, null, 2));
+        console.log(`[Hermes] seeded owner access for ${companyRecord.companyName}`);
       } else {
         const syncResult = await runOwnersSync({
           supabase,

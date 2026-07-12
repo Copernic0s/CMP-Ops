@@ -73,15 +73,26 @@ export const runOwnersSync = async ({
 
   const results = [];
   let updatedCount = 0;
+  let skippedCount = 0;
 
   try {
     for (const company of filteredCompanies) {
-      const snapshot = await captureOwnerAccessForCompany(company.companyName, { baseUrl });
-      const row = toOwnerAccessRow(company, snapshot);
-      await upsertOwnerAccessRows(supabase, [row]);
-      results.push({ company: company.companyName, ok: true });
-      updatedCount += 1;
-      console.log(`[Hermes] synced owner access for ${company.companyName}`);
+      try {
+        const snapshot = await captureOwnerAccessForCompany(company.companyName, { baseUrl });
+        const row = toOwnerAccessRow(company, snapshot);
+        await upsertOwnerAccessRows(supabase, [row]);
+        results.push({ company: company.companyName, ok: true });
+        updatedCount += 1;
+        console.log(`[Hermes] synced owner access for ${company.companyName}`);
+      } catch (error) {
+        skippedCount += 1;
+        results.push({
+          company: company.companyName,
+          ok: false,
+          error: error.message
+        });
+        console.log(`[Hermes] skipped owner access for ${company.companyName}: ${error.message}`);
+      }
     }
 
     await finishSyncAuditRun(supabase, audit.id, {
@@ -90,6 +101,7 @@ export const runOwnersSync = async ({
       metadata: {
         portfolio_sheet: portfolio.sheetName,
         company_filter: companyFilter || null,
+        skipped_records: skippedCount,
         finished: true
       }
     });
@@ -111,6 +123,7 @@ export const runOwnersSync = async ({
     auditId: audit.id,
     totalCompanies: filteredCompanies.length,
     updatedCount,
+    skippedCount,
     results
   };
 };

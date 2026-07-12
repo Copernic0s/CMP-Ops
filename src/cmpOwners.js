@@ -24,7 +24,14 @@ const findNavigationItem = async (page, labels) =>
   || firstVisible(labels.map((label) => page.getByText(label, { exact: false })));
 
 const expandUsersManagement = async (page) => {
-  const usersManagement = await findNavigationItem(page, USERS_MANAGEMENT_TAB_NAMES);
+  const usersManagement = await firstVisible([
+    page.getByRole('button', { name: 'Users Management', exact: false }),
+    page.getByRole('button', { name: 'User management', exact: false }),
+    page.getByRole('button', { name: 'Users', exact: false }),
+    page.getByText('Users Management', { exact: false }),
+    page.getByText('User management', { exact: false }),
+    page.getByText('Users', { exact: false })
+  ]);
   if (!usersManagement) {
     return false;
   }
@@ -39,9 +46,14 @@ const expandUsersManagement = async (page) => {
 };
 
 const findOwnersNavigation = async (page) => {
-  const directOwners = await findNavigationItem(page, OWNERS_TAB_NAMES);
-  if (directOwners) {
+  const directOwners = page.locator('a[href="/owners"], [href="/owners"]').first();
+  if (directOwners && await directOwners.isVisible().catch(() => false)) {
     return directOwners;
+  }
+
+  const directOwnersByText = await findNavigationItem(page, OWNERS_TAB_NAMES);
+  if (directOwnersByText) {
+    return directOwnersByText;
   }
 
   const expanded = await expandUsersManagement(page);
@@ -49,7 +61,36 @@ const findOwnersNavigation = async (page) => {
     return null;
   }
 
-  return findNavigationItem(page, OWNERS_TAB_NAMES);
+  const ownersByHref = page.locator('a[href="/owners"], [href="/owners"]').first();
+  await ownersByHref.waitFor({ state: 'visible', timeout: 5000 }).catch(() => {});
+  if (await ownersByHref.isVisible().catch(() => false)) {
+    return ownersByHref;
+  }
+
+  const directOwnersAfterExpand = await findNavigationItem(page, OWNERS_TAB_NAMES);
+  if (directOwnersAfterExpand) {
+    return directOwnersAfterExpand;
+  }
+
+  const anyOwners = page.getByText('Owners', { exact: false }).first();
+  if (anyOwners && await anyOwners.isVisible().catch(() => false)) {
+    return anyOwners;
+  }
+
+  return null;
+};
+
+const waitForOwnersShell = async (page) => {
+  const shellReady = await firstVisible([
+    page.getByRole('button', { name: 'Users Management', exact: false }),
+    page.getByText('Users Management', { exact: false })
+  ]);
+  if (shellReady) {
+    await shellReady.waitFor({ state: 'visible', timeout: 15000 }).catch(() => {});
+  } else {
+    await page.waitForTimeout(15000).catch(() => {});
+  }
+  await page.waitForTimeout(500);
 };
 
 const findSearchBox = async (page) =>
@@ -64,12 +105,61 @@ const findSearchBox = async (page) =>
     page.locator('input[type="text"]')
   ]);
 
-const findCompanyRow = async (page, companyName) =>
-  firstVisible([
-    page.getByRole('row', { name: companyName, exact: false }),
-    page.locator('tr', { hasText: companyName }),
-    page.locator(`[role="row"]`, { hasText: companyName })
-  ]);
+const normalizeOwnerSearchText = (value) =>
+  String(value || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .replace(/\b(?:llc|inc|corp|co|company|ltd|lp|llp|transportation|transport|group|groups|solutions|services)\b/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+const buildOwnerSearchTerms = (companyName) => {
+  const normalized = normalizeOwnerSearchText(companyName);
+  const tokens = normalized.split(' ').filter(Boolean);
+  const terms = [];
+
+  const pushTerm = (term) => {
+    const cleaned = normalizeOwnerSearchText(term);
+    if (!cleaned || terms.includes(cleaned)) return;
+    terms.push(cleaned);
+  };
+
+  pushTerm(companyName);
+  pushTerm(normalized);
+
+  for (let size = Math.min(4, tokens.length); size >= 1; size -= 1) {
+    for (let start = 0; start <= tokens.length - size; start += 1) {
+      pushTerm(tokens.slice(start, start + size).join(' '));
+    }
+  }
+
+  return terms;
+};
+
+const rowMatchesCompany = (rowText, companyName) => {
+  const rowTokens = normalizeOwnerSearchText(rowText).split(' ').filter(Boolean);
+  const targetTokens = normalizeOwnerSearchText(companyName).split(' ').filter(Boolean);
+  if (!rowTokens.length || !targetTokens.length) return false;
+
+  return targetTokens.every((token) => rowTokens.includes(token));
+};
+
+const findCompanyRow = async (page, companyName) => {
+  const rows = page.locator('tbody tr');
+  const rowCount = await rows.count().catch(() => 0);
+
+  for (let index = 0; index < rowCount; index += 1) {
+    const candidate = rows.nth(index);
+    const text = await candidate.textContent({ timeoutMs: 15000 }).catch(() => '');
+    const cells = await candidate.locator('td').allTextContents().catch(() => []);
+    const companyCell = String(cells[4] || '').trim();
+    if (rowMatchesCompany(companyCell, companyName) || rowMatchesCompany(text, companyName)) {
+      return candidate;
+    }
+  }
+
+  return null;
+};
 
 const findActionMenuButton = async (row) =>
   firstVisible([
@@ -139,11 +229,13 @@ const readPopupPassword = async (page) => {
 const extractOwnerRowFields = async (row, companyName) => {
   const cells = await row.locator('td, [role="cell"]').allTextContents().catch(() => []);
   const cleanedCells = cells.map((value) => String(value || '').trim()).filter(Boolean);
+  const firstNameMatch = cleanedCells[0] || '';
+  const lastNameMatch = cleanedCells[1] || '';
   const emailMatch = cleanedCells.find((value) => /@/.test(value)) || '';
-  const companyMatch = cleanedCells[0] || companyName || '';
+  const companyMatch = cleanedCells[4] || companyName || '';
   const nonActionCells = cleanedCells.filter((value) => !/^(?:\.{3}|more actions|actions|show password|copy(?: to clipboard)?)$/i.test(value));
-  const usernameMatch = nonActionCells.find((value) => value !== companyMatch && value !== emailMatch && !/@/.test(value)) || '';
-  const ownerNameMatch = nonActionCells.find((value) => value !== companyMatch && value !== emailMatch && value !== usernameMatch && !/@/.test(value)) || '';
+  const usernameMatch = firstNameMatch || nonActionCells.find((value) => value !== companyMatch && value !== emailMatch && !/@/.test(value)) || '';
+  const ownerNameMatch = [firstNameMatch, lastNameMatch].filter(Boolean).join(' ').trim();
 
   return {
     rowCells: cleanedCells,
@@ -179,6 +271,7 @@ export const captureOwnerAccessForCompany = async (companyName, options = {}) =>
   }
 
   await activePage.goto(baseUrl, { waitUntil: 'domcontentloaded' });
+  await waitForOwnersShell(activePage);
 
   const ownersNav = await findOwnersNavigation(activePage);
   if (!ownersNav) {
@@ -192,11 +285,20 @@ export const captureOwnerAccessForCompany = async (companyName, options = {}) =>
     throw new Error('Search box was not found in CMP owners view');
   }
 
-  await searchBox.click({ timeoutMs: 15000 });
-  await searchBox.fill(companyName, { timeoutMs: 15000 });
-  await searchBox.press('Enter', { timeoutMs: 15000 });
+  const searchTerms = buildOwnerSearchTerms(companyName);
+  let row = null;
 
-  const row = await findCompanyRow(activePage, companyName);
+  for (const searchTerm of searchTerms) {
+    await searchBox.click({ timeoutMs: 15000 });
+    await searchBox.fill(searchTerm, { timeoutMs: 15000 });
+    await searchBox.press('Enter', { timeoutMs: 15000 });
+    await activePage.waitForTimeout(1200);
+    row = await findCompanyRow(activePage, companyName);
+    if (row) {
+      break;
+    }
+  }
+
   if (!row) {
     throw new Error(`Company "${companyName}" was not found in CMP owners`);
   }
