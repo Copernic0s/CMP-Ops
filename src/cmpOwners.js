@@ -453,7 +453,13 @@ const filterOwnersBySearch = async (page, companyName) => {
   await ownersSearch.click({ timeoutMs: 15000 });
   await ownersSearch.press(process.platform === 'darwin' ? 'Meta+A' : 'Control+A').catch(() => {});
   await ownersSearch.type(companyName, { timeoutMs: 15000, delay: 40 });
-  await ownersSearch.press('Enter').catch(() => {});
+  const searchSuggestion = await findVisibleSuggestion(page, companyName, 10000);
+  if (searchSuggestion) {
+    await searchSuggestion.click({ timeoutMs: 15000 }).catch(() => {});
+  } else {
+    await ownersSearch.press('ArrowDown').catch(() => {});
+    await ownersSearch.press('Enter').catch(() => {});
+  }
   await page.waitForLoadState('networkidle').catch(() => {});
   await page.waitForTimeout(2200);
   return true;
