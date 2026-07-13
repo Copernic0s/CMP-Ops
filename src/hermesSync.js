@@ -5,12 +5,31 @@ import {
   upsertCardStatusRows,
   upsertOwnerAccessRows
 } from './hermesStore.js';
-import { captureOwnerAccessForCompany } from './cmpOwners.js';
+import { captureOwnerAccessForCompany, openOwnerAccessSession } from './cmpOwners.js';
 import { captureCardStatusForCompany } from './cmpCards.js';
 import { captureCardInventory, normalizeInventoryCompanyKey } from './cmpInventory.js';
 
 const buildCompanyKeySet = (portfolio) =>
   new Set((portfolio?.companies || []).map((company) => String(company.companyKey || '').trim()).filter(Boolean));
+
+const withTimeout = async (promise, timeoutMs, message) => {
+  let timeoutId = null;
+  const timeoutPromise = new Promise((_, reject) => {
+    timeoutId = setTimeout(() => reject(new Error(message)), timeoutMs);
+  });
+  try {
+    return await Promise.race([promise, timeoutPromise]);
+  } finally {
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
+  }
+};
+
+const resolveOwnerAccessTimeoutMs = () => {
+  const timeoutMs = Number(process.env.HERMES_OWNER_ACCESS_TIMEOUT_MS || 25000);
+  return Number.isFinite(timeoutMs) && timeoutMs > 0 ? timeoutMs : 25000;
+};
 
 const summarizeMatchedInventoryRows = (rows) => {
   const companyCounts = new Map();
@@ -74,11 +93,20 @@ export const runOwnersSync = async ({
   const results = [];
   let updatedCount = 0;
   let skippedCount = 0;
+  let ownerSession = null;
+  const ownerAccessTimeoutMs = resolveOwnerAccessTimeoutMs();
 
   try {
+    ownerSession = await openOwnerAccessSession({ baseUrl });
+
     for (const company of filteredCompanies) {
       try {
-        const snapshot = await captureOwnerAccessForCompany(company.companyName, { baseUrl });
+        console.log(`[Hermes] starting owner access for ${company.companyName}`);
+        const snapshot = await withTimeout(
+          captureOwnerAccessForCompany(company.companyName, { baseUrl, page: ownerSession.page }),
+          ownerAccessTimeoutMs,
+          `owner access timed out after ${ownerAccessTimeoutMs}ms for ${company.companyName}`
+        );
         const row = toOwnerAccessRow(company, snapshot);
         await upsertOwnerAccessRows(supabase, [row]);
         results.push({ company: company.companyName, ok: true });
@@ -95,6 +123,10 @@ export const runOwnersSync = async ({
       }
     }
 
+    if (ownerSession?.close) {
+      await ownerSession.close().catch(() => {});
+    }
+
     await finishSyncAuditRun(supabase, audit.id, {
       recordsFound: filteredCompanies.length,
       recordsUpdated: updatedCount,
@@ -106,6 +138,9 @@ export const runOwnersSync = async ({
       }
     });
   } catch (error) {
+    if (ownerSession?.close) {
+      await ownerSession.close().catch(() => {});
+    }
     await finishSyncAuditRun(supabase, audit.id, {
       recordsFound: filteredCompanies.length,
       recordsUpdated: updatedCount,
@@ -141,6 +176,10 @@ const toCardStatusRows = (company, snapshot) =>
     source_metadata: {
       row_text: card.rowSummary || '',
       row_cells: card.rowCells || [],
+      card_number: card.cardNumber || null,
+      organization: card.organization || null,
+      efs_account: card.efsAccount || null,
+      last_used_date: card.lastUsedDate || null,
       ...card.sourceMetadata
     },
     updated_at: new Date().toISOString()

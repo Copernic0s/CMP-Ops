@@ -49,6 +49,35 @@ const findSearchBox = async (page) => {
   ]);
 };
 
+const gatherTableHeaders = async (page) => {
+  const table = await page.locator('table').first();
+  const headerCells = await table.locator('thead th, thead [role="columnheader"]').allTextContents().catch(() => []);
+  return headerCells.map((value) => String(value || '').trim()).filter(Boolean);
+};
+
+const normalizeHeader = (value) =>
+  String(value || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim()
+    .replace(/\s+/g, ' ');
+
+const headerIndexMap = (headers) => {
+  const map = new Map();
+  headers.forEach((header, index) => {
+    map.set(normalizeHeader(header), index);
+  });
+  return map;
+};
+
+const pickIndex = (map, candidates) => {
+  for (const candidate of candidates) {
+    const normalized = normalizeHeader(candidate);
+    if (map.has(normalized)) return map.get(normalized);
+  }
+  return -1;
+};
+
 const findCompanyRow = async (page, companyName) =>
   firstVisible([
     page.getByRole('row', { name: companyName, exact: false }),
@@ -68,8 +97,16 @@ const textFromRow = async (row) => {
 };
 
 const extractCardRecords = async (page, companyName) => {
+  const headers = await gatherTableHeaders(page).catch(() => []);
+  const headerMap = headerIndexMap(headers);
   const tableRows = await page.locator('tr, [role="row"]').all().catch(() => []);
   const results = [];
+
+  const getCell = (cells, ...candidates) => {
+    const index = pickIndex(headerMap, candidates);
+    if (index < 0) return '';
+    return String(cells[index] || '').trim();
+  };
 
   for (const row of tableRows) {
     const visible = await row.isVisible().catch(() => false);
@@ -80,20 +117,34 @@ const extractCardRecords = async (page, companyName) => {
     if (!text.toLowerCase().includes(String(companyName || '').toLowerCase())) continue;
 
     const { cells } = await textFromRow(row);
-    const accountIdentifier = cells[1] || cells[0] || companyName;
-    const currentStatus = cells.find((value) => /active|blocked|locked|suspended|pending|unknown|open|closed|ready|review/i.test(value)) || 'unknown';
+    const accountIdentifier = getCell(cells, 'card number', 'card no', 'card #', 'card', 'account identifier')
+      || cells[1]
+      || cells[0]
+      || companyName;
+    const organization = getCell(cells, 'organization', 'org');
+    const efsAccount = getCell(cells, 'efs account', 'efs organization', 'efs org');
+    const currentStatus = getCell(cells, 'card status', 'status')
+      || cells.find((value) => /active|blocked|locked|suspended|pending|unknown|open|closed|ready|review/i.test(value))
+      || 'unknown';
+    const lastUsedDate = getCell(cells, 'last used date', 'last used');
     const lastSeenStatus = currentStatus;
 
     results.push({
       companyName,
       accountIdentifier,
+      organization: organization || null,
+      efsAccount: efsAccount || null,
       currentStatus,
       lastSeenStatus,
+      lastUsedDate: lastUsedDate || null,
       rowSummary: text,
       rowCells: cells,
       sourceMetadata: {
         row_text: text,
-        row_cells: cells
+        row_cells: cells,
+        organization: organization || null,
+        efs_account: efsAccount || null,
+        last_used_date: lastUsedDate || null
       }
     });
   }

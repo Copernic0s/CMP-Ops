@@ -94,6 +94,50 @@ const maskOwnerPassword = (row, revealPassword) => ({
   password_hidden: !revealPassword
 });
 
+const buildCardInventoryIndex = (rows = []) => {
+  const byCardNumber = new Map();
+  const byAccountIdentifier = new Map();
+
+  for (const row of rows) {
+    const cardNumber = String(row?.card_number || '').trim();
+    const accountIdentifier = String(row?.account_identifier || row?.card_number || '').trim();
+    if (cardNumber && !byCardNumber.has(cardNumber)) {
+      byCardNumber.set(cardNumber, row);
+    }
+    if (accountIdentifier && !byAccountIdentifier.has(accountIdentifier)) {
+      byAccountIdentifier.set(accountIdentifier, row);
+    }
+  }
+
+  return { byCardNumber, byAccountIdentifier };
+};
+
+const enrichCardStatusRows = (cardStatusRows = [], cardInventoryRows = []) => {
+  const inventoryIndex = buildCardInventoryIndex(cardInventoryRows);
+
+  return cardStatusRows.map((row) => {
+    const accountIdentifier = String(row?.account_identifier || '').trim();
+    const cardNumber = String(row?.card_number || '').trim();
+    const matchedInventory =
+      (accountIdentifier && inventoryIndex.byAccountIdentifier.get(accountIdentifier)) ||
+      (cardNumber && inventoryIndex.byCardNumber.get(cardNumber)) ||
+      null;
+
+    const sourceMetadata = row?.source_metadata && typeof row.source_metadata === 'object' ? row.source_metadata : {};
+    const inventoryMetadata = matchedInventory?.source_metadata && typeof matchedInventory.source_metadata === 'object'
+      ? matchedInventory.source_metadata
+      : {};
+
+    return {
+      ...row,
+      card_number: cardNumber || matchedInventory?.card_number || accountIdentifier || null,
+      organization: row.organization || matchedInventory?.organization || sourceMetadata.organization || inventoryMetadata.organization || null,
+      efs_account: row.efs_account || matchedInventory?.efs_account || sourceMetadata.efs_account || inventoryMetadata.efs_account || null,
+      last_used_date: row.last_used_date || matchedInventory?.last_used_date || sourceMetadata.last_used_date || inventoryMetadata.last_used_date || null
+    };
+  });
+};
+
 const readCompanyCandidates = async (supabase, table, { query = '', limit = 10 } = {}) => {
   let builder = supabase
     .from(table)
@@ -207,8 +251,9 @@ export const loadHermesCompanySnapshot = async (
   ]);
 
   const maskedOwnerAccess = ownerAccess.map((row) => maskOwnerPassword(row, revealPassword));
+  const enrichedCardStatus = enrichCardStatusRows(cardStatus, cardInventory);
   const companyName = getCompanyNameFromRows(
-    [ownerAccess[0], cardStatus[0], cardInventory[0]].filter(Boolean),
+    [ownerAccess[0], enrichedCardStatus[0], cardInventory[0]].filter(Boolean),
     normalizedCompanyKey
   );
 
@@ -217,11 +262,11 @@ export const loadHermesCompanySnapshot = async (
     companyName,
     revealPassword: Boolean(revealPassword),
     ownerAccess: maskedOwnerAccess,
-    cardStatus,
+    cardStatus: enrichedCardStatus,
     cardInventory,
     summary: {
       ownerAccessCount: maskedOwnerAccess.length,
-      cardStatusCount: cardStatus.length,
+      cardStatusCount: enrichedCardStatus.length,
       cardInventoryCount: cardInventory.length
     }
   };

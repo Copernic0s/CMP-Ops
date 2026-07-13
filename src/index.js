@@ -37,14 +37,13 @@ const boot = async () => {
 
       if (process.env.HERMES_TARGET_COMPANY) {
         const companyName = String(process.env.HERMES_TARGET_COMPANY || '').trim();
-        const ownerResult = await captureOwnerAccessForCompany(companyName, { baseUrl });
         const companyRecord =
           portfolio.companies.find((company) => String(company.companyName || '').trim().toLowerCase() === companyName.toLowerCase()) ||
-          portfolio.companies.find((company) => normalizeCompanyKey(company.companyName || '') === normalizeCompanyKey(companyName)) ||
-          {
-            companyName,
-            companyKey: normalizeCompanyKey(companyName)
-          };
+          portfolio.companies.find((company) => normalizeCompanyKey(company.companyName || '') === normalizeCompanyKey(companyName));
+        if (!companyRecord) {
+          throw new Error(`Company "${companyName}" was not found in portfolio sheet ${portfolio.sheetName}`);
+        }
+        const ownerResult = await captureOwnerAccessForCompany(companyName, { baseUrl });
         const now = new Date().toISOString();
         await upsertOwnerAccessRows(supabase, [{
           company_key: companyRecord.companyKey,
