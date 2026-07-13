@@ -6,7 +6,7 @@
 - [ ] Continue wiring live portfolio data into the left rail and right detail view
 - [ ] Adjust the CMP workers to the current navigation labels and routes in the live app
 - [ ] Run the full owners sync so the dashboard can show more credential rows from Supabase
-- [ ] Define the exact password behavior for the future secure reveal section
+- [ ] Define the final password reveal behavior for the credentials section
 - [ ] Keep the CMP scraping bot as a separate pending task
 - [ ] Keep the inventory checkpoint workflow available for future resyncs
 
@@ -28,6 +28,8 @@
 - [x] Verify the dashboard route against the live Supabase project and tune the sidebar/command bar layout
 - [x] Refactor the dashboard into a light split-pane layout inspired by the Indeed reference
 - [x] Seed a working owners row into Supabase from the live CMP session
+- [x] Separate the Credentials tab into a company list plus detail/password flow
+- [x] Guard the dashboard against missing DOM nodes so clicks do not throw null textContent errors
 
 ## Notes
 

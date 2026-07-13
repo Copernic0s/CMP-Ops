@@ -1246,9 +1246,17 @@ export const buildHermesDashboardHtml = () => `<!doctype html>
     let credentialsSearchTimer = null;
     state.credentialsRevealPasswords = false;
 
+    const setNodeText = function(node, value) {
+      if (node) {
+        node.textContent = value;
+      }
+    };
+
     const setStatus = function(message, error) {
-      status.textContent = message;
-      status.style.color = error ? 'var(--danger)' : 'var(--muted)';
+      setNodeText(status, message);
+      if (status) {
+        status.style.color = error ? 'var(--danger)' : 'var(--muted)';
+      }
     };
 
     const setView = function(view) {
@@ -1257,11 +1265,11 @@ export const buildHermesDashboardHtml = () => `<!doctype html>
       credentialsView.classList.toggle('is-hidden', activeView !== 'credentials');
       tabCardsButton.classList.toggle('is-active', activeView === 'cards');
       tabCredentialsButton.classList.toggle('is-active', activeView === 'credentials');
-      modeChip.textContent = activeView === 'cards' ? 'Cards view' : 'Credentials view';
+      setNodeText(modeChip, activeView === 'cards' ? 'Cards view' : 'Credentials view');
       if (credentialsStatus) {
-        credentialsStatus.textContent = activeView === 'cards'
+        setNodeText(credentialsStatus, activeView === 'cards'
           ? 'Cards view ready.'
-          : 'Credentials view ready.';
+          : 'Credentials view ready.');
       }
     };
 
@@ -1369,13 +1377,12 @@ export const buildHermesDashboardHtml = () => `<!doctype html>
       }
 
       var renderedList = items.map(function(item) {
-        const cardLabel = item.matchedCardNumbers && item.matchedCardNumbers.length ? item.matchedCardNumbers[0] : '';
         const statusLabel = item.matchedStatuses && item.matchedStatuses.length ? item.matchedStatuses[0] : 'Open snapshot';
         return (
           '<button type="button" class="result-item" data-company-key="' + escapeHtml(item.companyKey) + '">' +
             '<div>' +
               '<strong>' + escapeHtml(item.companyName || item.companyKey) + '</strong>' +
-              '<span>' + escapeHtml(item.companyKey) + (cardLabel ? ' · ' + escapeHtml(cardLabel) : '') + '</span>' +
+              '<span>' + escapeHtml(item.companyKey) + '</span>' +
             '</div>' +
             '<div class="pill ok">' + escapeHtml(statusLabel) + '</div>' +
           '</button>'
@@ -1411,7 +1418,6 @@ export const buildHermesDashboardHtml = () => `<!doctype html>
           '<button type="button" class="result-item" data-company-key="' + escapeHtml(item.companyKey) + '">' +
             '<div>' +
               '<strong>' + escapeHtml(item.companyName || item.companyKey) + '</strong>' +
-              '<span>' + escapeHtml(item.companyKey) + '</span>' +
             '</div>' +
             '<div class="pill warn">Password</div>' +
           '</button>'
@@ -1471,12 +1477,12 @@ export const buildHermesDashboardHtml = () => `<!doctype html>
 
     const renderCredentialRows = function(rows, revealPassword) {
       if (!rows.length) {
-        credentialHint.textContent = 'No company loaded';
+        setNodeText(credentialHint, 'No company loaded');
         credentialBody.innerHTML = '<tr><td colspan="4" class="empty">Load a company from Cards first.</td></tr>';
         return;
       }
 
-      credentialHint.textContent = revealPassword ? 'Passwords visible' : 'Passwords masked';
+      setNodeText(credentialHint, revealPassword ? 'Passwords visible' : 'Passwords masked');
       credentialBody.innerHTML = rows.map(function(row) {
         return (
           '<tr>' +
@@ -1543,15 +1549,15 @@ export const buildHermesDashboardHtml = () => `<!doctype html>
         }
       });
 
-      detailCompanyName.textContent = hasCompany ? (payload.companyName || payload.companyKey) : 'No company loaded';
-      detailCompanyKey.textContent = hasCompany
+      setNodeText(detailCompanyName, hasCompany ? (payload.companyName || payload.companyKey) : 'No company loaded');
+      setNodeText(detailCompanyKey, hasCompany
         ? (payload.companyKey + ' · ' + String(summary.cardInventoryCount || 0) + ' cards')
-        : 'Search or select a company from the left rail.';
+        : 'Search or select a company from the left rail.');
 
-      detailCardsCount.textContent = String((summary.cardStatusCount || 0) + (summary.cardInventoryCount || 0));
-      detailActiveCount.textContent = String(activeCards);
-      detailInactiveCount.textContent = String(inactiveCards);
-      detailLastSync.textContent = latestSyncedAt ? new Date(latestSyncedAt).toLocaleString() : '—';
+      setNodeText(detailCardsCount, String((summary.cardStatusCount || 0) + (summary.cardInventoryCount || 0)));
+      setNodeText(detailActiveCount, String(activeCards));
+      setNodeText(detailInactiveCount, String(inactiveCards));
+      setNodeText(detailLastSync, latestSyncedAt ? new Date(latestSyncedAt).toLocaleString() : '—');
 
     };
 
@@ -1559,15 +1565,15 @@ export const buildHermesDashboardHtml = () => `<!doctype html>
       state.selectedCompany = payload;
       state.lastCompanyKey = payload.companyKey || '';
 
-      $('metricCompany').textContent = payload.companyName || 'Unknown';
-      $('metricCompanyKey').textContent = payload.companyKey || '—';
-      $('metricOwners').textContent = String(payload.summary && payload.summary.ownerAccessCount ? payload.summary.ownerAccessCount : 0);
-      $('metricCards').textContent = String((payload.summary && payload.summary.cardStatusCount ? payload.summary.cardStatusCount : 0) + (payload.summary && payload.summary.cardInventoryCount ? payload.summary.cardInventoryCount : 0));
-      $('metricReveal').textContent = payload.revealPassword ? 'Visible' : 'Hidden';
+      setNodeText($('metricCompany'), payload.companyName || 'Unknown');
+      setNodeText($('metricCompanyKey'), payload.companyKey || '—');
+      setNodeText($('metricOwners'), String(payload.summary && payload.summary.ownerAccessCount ? payload.summary.ownerAccessCount : 0));
+      setNodeText($('metricCards'), String((payload.summary && payload.summary.cardStatusCount ? payload.summary.cardStatusCount : 0) + (payload.summary && payload.summary.cardInventoryCount ? payload.summary.cardInventoryCount : 0)));
+      setNodeText($('metricReveal'), payload.revealPassword ? 'Visible' : 'Hidden');
 
-      $('ownerHint').textContent = payload.revealPassword ? 'Passwords visible on request' : 'Passwords masked by default';
-      $('summaryHint').textContent = String(payload.summary && payload.summary.cardStatusCount ? payload.summary.cardStatusCount : 0) + ' status rows and ' + String(payload.summary && payload.summary.cardInventoryCount ? payload.summary.cardInventoryCount : 0) + ' inventory rows';
-      $('inventoryHint').textContent = payload.companyKey ? 'Inventory linked to ' + payload.companyKey : 'Inventory will appear here';
+      setNodeText($('ownerHint'), payload.revealPassword ? 'Passwords visible on request' : 'Passwords masked by default');
+      setNodeText($('summaryHint'), String(payload.summary && payload.summary.cardStatusCount ? payload.summary.cardStatusCount : 0) + ' status rows and ' + String(payload.summary && payload.summary.cardInventoryCount ? payload.summary.cardInventoryCount : 0) + ' inventory rows');
+      setNodeText($('inventoryHint'), payload.companyKey ? 'Inventory linked to ' + payload.companyKey : 'Inventory will appear here');
 
       renderOwnerRows(payload.ownerAccess || [], payload.revealPassword);
       renderCardRows(payload.cardStatus || []);
@@ -1744,10 +1750,10 @@ export const buildHermesDashboardHtml = () => `<!doctype html>
       });
     }
 
-    if (credentialRevealButton) {
+      if (credentialRevealButton) {
       credentialRevealButton.addEventListener('click', function() {
         state.credentialsRevealPasswords = !state.credentialsRevealPasswords;
-        credentialRevealButton.textContent = state.credentialsRevealPasswords ? 'Hide passwords' : 'Reveal passwords';
+        setNodeText(credentialRevealButton, state.credentialsRevealPasswords ? 'Hide passwords' : 'Reveal passwords');
         if (state.lastCompanyKey) {
           loadCompany(state.lastCompanyKey, {
             revealPassword: state.credentialsRevealPasswords
