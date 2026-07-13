@@ -15,6 +15,7 @@
 - The dashboard now uses a unified company/card search bar with up to 10 matched companies in the scrollable left rail.
 - The dashboard now has `Cards` and `Credentials` tabs, with `Cards` owning the search flow and `Credentials` reserved for the email/password surface.
 - The `Credentials` tab now shows a company list on the left and company credentials on the right, with passwords hidden by default and a reveal toggle.
+- The credentials list is now sourced from `cmp_owner_access` only, so it shows only companies that actually have saved login rows.
 - The dashboard layout has been reshaped so the center panel owns the active company detail, metrics, and the inventory table.
 - The `Cards` view has been flattened into a light split-pane layout inspired by the Indeed reference: compact header, search in the left rail, left company list, and a single active detail area.
 - Legacy stacked blocks in the `Cards` flow have been removed from the visible UI so the interface reads like a dashboard instead of a demo panel.
@@ -42,6 +43,7 @@
 - project docs for task, progress, and agent guidance
 - owner access capture now works against the live CMP owners screen for at least one seeded company
 - the credentials view is now a separate read path that can reveal passwords on demand
+- the credentials company list is intentionally separate from the cards list and is driven by owner access rows
 
 ## What Broke Recently
 

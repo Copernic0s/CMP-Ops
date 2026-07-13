@@ -1366,6 +1366,42 @@ export const buildHermesDashboardHtml = () => `<!doctype html>
       return Array.from(merged.values()).slice(0, 10);
     };
 
+    const mergeCredentialCompanies = function(ownerRows, limit = 20) {
+      const merged = new Map();
+
+      (ownerRows || []).forEach(function(row) {
+        const companyKey = String(row.company_key || row.companyKey || row.company_name || '').trim();
+        if (!companyKey) {
+          return;
+        }
+
+        const normalizedKey = companyKey.toLowerCase();
+        const current = merged.get(normalizedKey) || {
+          companyKey: companyKey,
+          companyName: String(row.company_name || row.companyName || companyKey).trim(),
+          lastSyncedAt: row.last_synced_at || row.lastSyncedAt || null,
+          ownerAccessCount: 0
+        };
+
+        current.ownerAccessCount += 1;
+        if (!current.companyName) {
+          current.companyName = String(row.company_name || row.companyName || companyKey).trim();
+        }
+        if (!current.lastSyncedAt) {
+          current.lastSyncedAt = row.last_synced_at || row.lastSyncedAt || null;
+        }
+
+        merged.set(normalizedKey, current);
+      });
+
+      return Array.from(merged.values())
+        .sort(function(left, right) {
+          return String(right.lastSyncedAt || '').localeCompare(String(left.lastSyncedAt || ''))
+            || String(left.companyName || left.companyKey).localeCompare(String(right.companyName || right.companyKey));
+        })
+        .slice(0, limit);
+    };
+
     const renderCompanyResults = function(items) {
       if (!items.length) {
         renderEmptyResults('No matches yet. Search a company name or card number.');
@@ -1390,9 +1426,6 @@ export const buildHermesDashboardHtml = () => `<!doctype html>
       }).join('');
 
       resultsList.innerHTML = renderedList;
-      if (credentialList) {
-        credentialList.innerHTML = renderedList;
-      }
 
       resultsList.querySelectorAll('[data-company-key]').forEach(function(button) {
         button.addEventListener('click', function() {
@@ -1405,12 +1438,12 @@ export const buildHermesDashboardHtml = () => `<!doctype html>
 
     const renderCredentialCompanies = function(items) {
       if (!items.length) {
-        renderEmptyCredentialResults('No matches yet.');
+        renderEmptyCredentialResults('No companies with credentials yet.');
         return;
       }
 
       if (credentialCount) {
-        credentialCount.textContent = '';
+        credentialCount.textContent = String(items.length) + ' companies';
       }
 
       var renderedList = items.map(function(item) {
@@ -1419,7 +1452,7 @@ export const buildHermesDashboardHtml = () => `<!doctype html>
             '<div>' +
               '<strong>' + escapeHtml(item.companyName || item.companyKey) + '</strong>' +
             '</div>' +
-            '<div class="pill warn">Password</div>' +
+            '<div class="pill warn">' + escapeHtml(String(item.ownerAccessCount || 0)) + ' creds</div>' +
           '</button>'
         );
       }).join('');
@@ -1598,12 +1631,36 @@ export const buildHermesDashboardHtml = () => `<!doctype html>
       var merged = mergeSearchResults(payloads[0].results || [], payloads[1].results || []);
       state.results = merged;
       renderCompanyResults(merged);
-      renderCredentialCompanies(merged);
 
       if (!trimmed) {
         setStatus('Results update as you type.');
       } else {
         setStatus('Showing matched companies for "' + trimmed + '".');
+      }
+
+      return { results: merged };
+    };
+
+    const loadCredentialCompanies = async function(query) {
+      var trimmed = String(query || '').trim();
+      var payload = await api('/snapshot/owner-access?limit=200');
+      var merged = mergeCredentialCompanies(payload || [], 20);
+
+      if (trimmed) {
+        var normalizedQuery = trimmed.toLowerCase();
+        merged = merged.filter(function(item) {
+          var companyName = String(item.companyName || '').toLowerCase();
+          var companyKey = String(item.companyKey || '').toLowerCase();
+          return companyName.includes(normalizedQuery) || companyKey.includes(normalizedQuery);
+        });
+      }
+
+      renderCredentialCompanies(merged);
+
+      if (!trimmed) {
+        setStatus('Credentials companies loaded.');
+      } else {
+        setStatus('Showing credential companies for "' + trimmed + '".');
       }
 
       return { results: merged };
@@ -1643,6 +1700,7 @@ export const buildHermesDashboardHtml = () => `<!doctype html>
       if (state.lastCompanyKey) {
         await Promise.all([
           loadSearchResults(query),
+          loadCredentialCompanies(credentialsQuery ? credentialsQuery.value.trim() : query),
           loadCompany(state.lastCompanyKey, {
             revealPassword: state.credentialsRevealPasswords
           })
@@ -1650,7 +1708,10 @@ export const buildHermesDashboardHtml = () => `<!doctype html>
         return;
       }
 
-      await loadSearchResults(query);
+      await Promise.all([
+        loadSearchResults(query),
+        loadCredentialCompanies(credentialsQuery ? credentialsQuery.value.trim() : query)
+      ]);
     };
 
     const copyText = async function(value, label) {
@@ -1666,7 +1727,10 @@ export const buildHermesDashboardHtml = () => `<!doctype html>
     const boot = async function() {
       try {
         setView('cards');
-        await loadSearchResults('');
+        await Promise.all([
+          loadSearchResults(''),
+          loadCredentialCompanies('')
+        ]);
         setStatus('Results update as you type.');
       } catch (error) {
         setStatus(error.message, true);
@@ -1686,7 +1750,7 @@ export const buildHermesDashboardHtml = () => `<!doctype html>
     const scheduleCredentialsSearch = function(value) {
       clearTimeout(credentialsSearchTimer);
       credentialsSearchTimer = setTimeout(function() {
-        loadSearchResults(String(value || '').trim()).catch(function(error) {
+        loadCredentialCompanies(String(value || '').trim()).catch(function(error) {
           setStatus(error.message, true);
         });
       }, 220);
@@ -1737,7 +1801,7 @@ export const buildHermesDashboardHtml = () => `<!doctype html>
       credentialsQuery.addEventListener('keydown', function(event) {
         if (event.key === 'Enter') {
           syncSearchFields(credentialsQuery.value.trim());
-          submitSearch().catch(function(error) {
+          loadCredentialCompanies(credentialsQuery.value.trim()).catch(function(error) {
             setStatus(error.message, true);
           });
         }
@@ -1750,7 +1814,7 @@ export const buildHermesDashboardHtml = () => `<!doctype html>
       });
     }
 
-      if (credentialRevealButton) {
+    if (credentialRevealButton) {
       credentialRevealButton.addEventListener('click', function() {
         state.credentialsRevealPasswords = !state.credentialsRevealPasswords;
         setNodeText(credentialRevealButton, state.credentialsRevealPasswords ? 'Hide passwords' : 'Reveal passwords');
