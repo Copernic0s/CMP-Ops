@@ -403,15 +403,34 @@ const findCompanyRowAcrossPages = async (page, companyName, maxPages = 25) => {
   return null;
 };
 
+const findVisibleSuggestion = async (page, companyName, timeoutMs = 10000) => {
+  const startedAt = Date.now();
+  const candidates = () => [
+    page.locator('[cmdk-item]').filter({ hasText: companyName }).first(),
+    page.locator('[cmdk-item]').first(),
+    page.locator('[role="option"]').filter({ hasText: companyName }).first(),
+    page.locator('[role="option"]').first(),
+    page.getByText(companyName, { exact: false }).first(),
+    page.getByText(companyName.split(' ')[0] || companyName, { exact: false }).first()
+  ];
+
+  while (Date.now() - startedAt < timeoutMs) {
+    const suggestion = await firstVisible(candidates());
+    if (suggestion) {
+      return suggestion;
+    }
+    await page.waitForTimeout(250);
+  }
+
+  return null;
+};
+
 const selectCompany = async (page, companySelect, companyName) => {
   await companySelect.click({ timeoutMs: 15000 });
   await companySelect.press(process.platform === 'darwin' ? 'Meta+A' : 'Control+A').catch(() => {});
   await companySelect.type(companyName, { timeoutMs: 15000, delay: 40 });
 
-  const suggestion = page.locator('[cmdk-item]').filter({ hasText: companyName }).first();
-  const fallbackSuggestion = page.locator('[cmdk-item]').first();
-
-  const selectedSuggestion = await firstVisible([suggestion, fallbackSuggestion]);
+  const selectedSuggestion = await findVisibleSuggestion(page, companyName, 10000);
 
   if (selectedSuggestion) {
     await selectedSuggestion.click({ timeoutMs: 15000 });
