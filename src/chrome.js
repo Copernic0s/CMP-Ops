@@ -41,54 +41,12 @@ export const resolveChromeSettings = (env = process.env) => ({
   profileDir: String(env.HERMES_CHROME_PROFILE_DIR || DEFAULT_CHROME_PROFILE_DIR).trim(),
   debugPort: Number(env.HERMES_CHROME_DEBUG_PORT || DEFAULT_CHROME_DEBUG_PORT),
   startupUrl: String(env.HERMES_CMP_URL || 'about:blank').trim(),
-  forceRestart: String(env.HERMES_CHROME_FORCE_RESTART || '').trim().toLowerCase() === 'true'
+  forceRestart: false
 });
-
-const findChromeProcessesForProfile = async (settings) => {
-  const userDataDir = String(settings.userDataDir || '').replace(/\\/g, '\\\\');
-  const profileDir = String(settings.profileDir || '').replace(/\\/g, '\\\\');
-  const script = `
-    Get-CimInstance Win32_Process -Filter "Name='chrome.exe'" |
-      Where-Object {
-        ($_.CommandLine -and $_.CommandLine -like "*${userDataDir}*") -and
-        ($_.CommandLine -like "*${profileDir}*")
-      } |
-      Select-Object ProcessId, CommandLine |
-      ConvertTo-Json -Compress
-  `;
-  const output = await execPowerShell(script).catch(() => '');
-  if (!output) return [];
-  try {
-    const parsed = JSON.parse(output);
-    return Array.isArray(parsed) ? parsed : [parsed];
-  } catch {
-    return [];
-  }
-};
 
 export const ensureChromeDebugger = async (settings = resolveChromeSettings()) => {
   if (await probeDebugger(settings.debugPort)) {
     return { started: false, port: settings.debugPort };
-  }
-
-  const matchingProcesses = await findChromeProcessesForProfile(settings).catch(() => []);
-  if (matchingProcesses.length > 0 && !settings.forceRestart) {
-    throw new Error(
-      `Chrome is already running for ${settings.profileDir} without remote debugging. Close that profile or set HERMES_CHROME_FORCE_RESTART=true to let Hermes restart it with port ${settings.debugPort}.`
-    );
-  }
-
-  if (matchingProcesses.length > 0 && settings.forceRestart) {
-    for (const proc of matchingProcesses) {
-      const pid = Number(proc.ProcessId || proc.processId);
-      if (!Number.isFinite(pid) || pid <= 0) continue;
-      spawn('taskkill', ['/PID', String(pid), '/T', '/F'], {
-        detached: false,
-        stdio: 'ignore',
-        windowsHide: true
-      }).unref?.();
-    }
-    await sleep(1500);
   }
 
   if (!settings.chromePath) {
@@ -118,6 +76,6 @@ export const ensureChromeDebugger = async (settings = resolveChromeSettings()) =
   }
 
   throw new Error(
-    `Chrome debugger did not become ready on port ${settings.debugPort}. If Chrome was already open on ${settings.profileDir}, close it first or set HERMES_CHROME_FORCE_RESTART=true.`
+    `Chrome debugger did not become ready on port ${settings.debugPort}. Open the profile manually or verify the profile can launch with remote debugging enabled.`
   );
 };

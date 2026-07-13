@@ -83,7 +83,8 @@ const findOwnersNavigation = async (page) => {
 const waitForOwnersShell = async (page) => {
   const shellReady = await firstVisible([
     page.getByRole('button', { name: 'Users Management', exact: false }),
-    page.getByText('Users Management', { exact: false })
+    page.getByText('Users Management', { exact: false }),
+    page.getByText('Owners', { exact: false })
   ]);
   if (shellReady) {
     await shellReady.waitFor({ state: 'visible', timeout: 15000 }).catch(() => {});
@@ -271,7 +272,26 @@ export const captureOwnerAccessForCompany = async (companyName, options = {}) =>
   }
 
   await activePage.goto(baseUrl, { waitUntil: 'domcontentloaded' });
+  await activePage.waitForLoadState('networkidle').catch(() => {});
   await waitForOwnersShell(activePage);
+
+  const usersManagementNav = await firstVisible([
+    activePage.getByRole('button', { name: 'Users Management', exact: false }),
+    activePage.getByRole('button', { name: 'User management', exact: false }),
+    activePage.getByRole('button', { name: 'Users', exact: false }),
+    activePage.getByText('Users Management', { exact: false }),
+    activePage.getByText('User management', { exact: false }),
+    activePage.getByText('Users', { exact: false })
+  ]);
+  if (!usersManagementNav) {
+    throw new Error('User management navigation was not found in CMP');
+  }
+
+  const expanded = String(await usersManagementNav.getAttribute('aria-expanded').catch(() => '') || '').toLowerCase();
+  if (expanded !== 'true') {
+    await usersManagementNav.click({ timeoutMs: 15000 });
+    await activePage.waitForTimeout(800);
+  }
 
   const ownersNav = await findOwnersNavigation(activePage);
   if (!ownersNav) {
@@ -281,6 +301,7 @@ export const captureOwnerAccessForCompany = async (companyName, options = {}) =>
   await activePage.waitForLoadState('networkidle').catch(() => {});
 
   const searchBox = await findSearchBox(activePage);
+
   if (!searchBox) {
     throw new Error('Search box was not found in CMP owners view');
   }
