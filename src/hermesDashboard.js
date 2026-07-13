@@ -1060,7 +1060,7 @@ export const buildHermesDashboardHtml = () => `<!doctype html>
             <div class="cards-pane-head">
               <div>
                 <h3>Companies</h3>
-                <div class="hint" id="resultsCount">0 results</div>
+                <div class="hint" id="resultsCount"></div>
               </div>
               <button id="syncDashboard" class="secondary-button" type="button">Sync now</button>
             </div>
@@ -1155,7 +1155,7 @@ export const buildHermesDashboardHtml = () => `<!doctype html>
             <div class="cards-pane-head">
               <div>
                 <h3>Credential companies</h3>
-                <div class="hint" id="credentialCount">0 results</div>
+                <div class="hint" id="credentialCount"></div>
               </div>
             </div>
             <div class="cards-pane-body">
@@ -1169,13 +1169,16 @@ export const buildHermesDashboardHtml = () => `<!doctype html>
                 <div class="eyebrow">Credentials</div>
                 <h2 id="credentialCompanyName">No company selected</h2>
                 <p id="credentialCompanyKey">Email and password details will appear here.</p>
+                <div class="hero-actions">
+                  <button id="credentialReveal" class="secondary-button" type="button">Reveal passwords</button>
+                </div>
               </div>
 
               <div class="table-wrap">
                 <table>
                   <thead>
                     <tr>
-                      <th>Owner</th>
+                      <th>Company</th>
                       <th>Email</th>
                       <th>Username</th>
                       <th>Password</th>
@@ -1207,7 +1210,6 @@ export const buildHermesDashboardHtml = () => `<!doctype html>
     };
 
     const queryInput = $('query');
-    const revealInput = $('reveal');
     const resultsList = $('resultsList');
     const credentialList = $('credentialList');
     const status = $('status');
@@ -1236,11 +1238,13 @@ export const buildHermesDashboardHtml = () => `<!doctype html>
     const credentialCount = $('credentialCount');
     const credentialCompanyName = $('credentialCompanyName');
     const credentialCompanyKey = $('credentialCompanyKey');
+    const credentialRevealButton = $('credentialReveal');
     const credentialsQuery = $('credentialsQuery');
 
     const escapeHtml = ${escapeHtml.toString()};
     let searchTimer = null;
     let credentialsSearchTimer = null;
+    state.credentialsRevealPasswords = false;
 
     const setStatus = function(message, error) {
       status.textContent = message;
@@ -1280,9 +1284,9 @@ export const buildHermesDashboardHtml = () => `<!doctype html>
       return payload;
     };
 
-    const buildCompanyUrl = function(companyKey) {
+    const buildCompanyUrl = function(companyKey, options = {}) {
       const encoded = encodeURIComponent(companyKey);
-      const revealPassword = revealInput ? Boolean(revealInput.checked) : false;
+      const revealPassword = Boolean(options.revealPassword);
       return '/company/' + encoded + '?revealPassword=' + (revealPassword ? 'true' : 'false');
     };
 
@@ -1292,7 +1296,18 @@ export const buildHermesDashboardHtml = () => `<!doctype html>
 
     const renderEmptyResults = function(message) {
       resultsList.innerHTML = '<div class="empty">' + escapeHtml(message) + '</div>';
-      resultsCount.textContent = '0 results';
+      if (resultsCount) {
+        resultsCount.textContent = '';
+      }
+    };
+
+    const renderEmptyCredentialResults = function(message) {
+      if (credentialList) {
+        credentialList.innerHTML = '<div class="empty">' + escapeHtml(message) + '</div>';
+      }
+      if (credentialCount) {
+        credentialCount.textContent = '';
+      }
     };
 
     const mergeSearchResults = function(companyItems, cardItems) {
@@ -1346,18 +1361,11 @@ export const buildHermesDashboardHtml = () => `<!doctype html>
     const renderCompanyResults = function(items) {
       if (!items.length) {
         renderEmptyResults('No matches yet. Search a company name or card number.');
-        if (credentialList) {
-          credentialList.innerHTML = '<div class="empty">No matches yet.</div>';
-        }
-        if (credentialCount) {
-          credentialCount.textContent = '0 results';
-        }
         return;
       }
 
-      resultsCount.textContent = String(items.length) + ' companies';
-      if (credentialCount) {
-        credentialCount.textContent = String(items.length) + ' companies';
+      if (resultsCount) {
+        resultsCount.textContent = '';
       }
 
       var renderedList = items.map(function(item) {
@@ -1386,16 +1394,40 @@ export const buildHermesDashboardHtml = () => `<!doctype html>
           });
         });
       });
+    };
 
-      if (credentialList) {
-        credentialList.querySelectorAll('[data-company-key]').forEach(function(button) {
-          button.addEventListener('click', function() {
-            loadCompany(button.getAttribute('data-company-key')).catch(function(error) {
-              setStatus(error.message, true);
-            });
+    const renderCredentialCompanies = function(items) {
+      if (!items.length) {
+        renderEmptyCredentialResults('No matches yet.');
+        return;
+      }
+
+      if (credentialCount) {
+        credentialCount.textContent = '';
+      }
+
+      var renderedList = items.map(function(item) {
+        return (
+          '<button type="button" class="result-item" data-company-key="' + escapeHtml(item.companyKey) + '">' +
+            '<div>' +
+              '<strong>' + escapeHtml(item.companyName || item.companyKey) + '</strong>' +
+              '<span>' + escapeHtml(item.companyKey) + '</span>' +
+            '</div>' +
+            '<div class="pill warn">Password</div>' +
+          '</button>'
+        );
+      }).join('');
+
+      credentialList.innerHTML = renderedList;
+      credentialList.querySelectorAll('[data-company-key]').forEach(function(button) {
+        button.addEventListener('click', function() {
+          loadCompany(button.getAttribute('data-company-key'), {
+            revealPassword: state.credentialsRevealPasswords
+          }).catch(function(error) {
+            setStatus(error.message, true);
           });
         });
-      }
+      });
     };
 
     const renderOwnerRows = function(rows, revealPassword) {
@@ -1448,7 +1480,7 @@ export const buildHermesDashboardHtml = () => `<!doctype html>
       credentialBody.innerHTML = rows.map(function(row) {
         return (
           '<tr>' +
-            '<td>' + escapeHtml(row.owner_name || '—') + '</td>' +
+            '<td>' + escapeHtml(row.company_name || '—') + '</td>' +
             '<td>' + escapeHtml(row.owner_email || '—') + '</td>' +
             '<td>' + escapeHtml(row.username || '—') + '</td>' +
             '<td>' + (revealPassword ? escapeHtml(row.password_ciphertext || '—') : '<span class="pill warn">Hidden</span>') + '</td>' +
@@ -1560,6 +1592,7 @@ export const buildHermesDashboardHtml = () => `<!doctype html>
       var merged = mergeSearchResults(payloads[0].results || [], payloads[1].results || []);
       state.results = merged;
       renderCompanyResults(merged);
+      renderCredentialCompanies(merged);
 
       if (!trimmed) {
         setStatus('Results update as you type.');
@@ -1570,7 +1603,7 @@ export const buildHermesDashboardHtml = () => `<!doctype html>
       return { results: merged };
     };
 
-    const loadCompany = async function(companyKey) {
+    const loadCompany = async function(companyKey, options = {}) {
       var key = String(companyKey || queryInput.value || '').trim();
       if (!key) {
         setStatus('Type a company or card number first.', true);
@@ -1578,7 +1611,7 @@ export const buildHermesDashboardHtml = () => `<!doctype html>
       }
 
       setStatus('Loading ' + key + '...');
-      var payload = await api(buildCompanyUrl(key));
+      var payload = await api(buildCompanyUrl(key, options));
       renderCompany(payload);
       setStatus('Loaded ' + (payload.companyName || payload.companyKey));
     };
@@ -1593,7 +1626,9 @@ export const buildHermesDashboardHtml = () => `<!doctype html>
 
       var payload = await loadSearchResults(query);
       if (query && payload.results && payload.results.length === 1 && payload.results[0].companyKey) {
-        await loadCompany(payload.results[0].companyKey);
+        await loadCompany(payload.results[0].companyKey, {
+          revealPassword: state.credentialsRevealPasswords
+        });
       }
     };
 
@@ -1602,7 +1637,9 @@ export const buildHermesDashboardHtml = () => `<!doctype html>
       if (state.lastCompanyKey) {
         await Promise.all([
           loadSearchResults(query),
-          loadCompany(state.lastCompanyKey)
+          loadCompany(state.lastCompanyKey, {
+            revealPassword: state.credentialsRevealPasswords
+          })
         ]);
         return;
       }
@@ -1669,7 +1706,9 @@ export const buildHermesDashboardHtml = () => `<!doctype html>
       if (!state.lastCompanyKey) {
         return;
       }
-      loadCompany(state.lastCompanyKey).catch(function(error) {
+      loadCompany(state.lastCompanyKey, {
+        revealPassword: state.credentialsRevealPasswords
+      }).catch(function(error) {
         setStatus(error.message, true);
       });
     });
@@ -1705,10 +1744,14 @@ export const buildHermesDashboardHtml = () => `<!doctype html>
       });
     }
 
-    if (revealInput) {
-      revealInput.addEventListener('change', function() {
+    if (credentialRevealButton) {
+      credentialRevealButton.addEventListener('click', function() {
+        state.credentialsRevealPasswords = !state.credentialsRevealPasswords;
+        credentialRevealButton.textContent = state.credentialsRevealPasswords ? 'Hide passwords' : 'Reveal passwords';
         if (state.lastCompanyKey) {
-          loadCompany(state.lastCompanyKey).catch(function(error) {
+          loadCompany(state.lastCompanyKey, {
+            revealPassword: state.credentialsRevealPasswords
+          }).catch(function(error) {
             setStatus(error.message, true);
           });
         }
@@ -1731,7 +1774,7 @@ export const buildHermesDashboardHtml = () => `<!doctype html>
 
     copyPasswordButton.addEventListener('click', function() {
       var owner = state.selectedCompany && state.selectedCompany.ownerAccess && state.selectedCompany.ownerAccess[0];
-      if (!revealInput || !revealInput.checked) {
+      if (!state.credentialsRevealPasswords) {
         setStatus('Reveal passwords first if you need to copy them.', true);
         return;
       }
