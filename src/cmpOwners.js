@@ -1,7 +1,7 @@
 import { chromium } from 'playwright-core';
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { resolveChromeSettings, stopMatchingChromeProcesses } from './chrome.js';
+import { resolveChromeSettings } from './chrome.js';
 
 const CUSTOMERS_SERVICES_TAB_NAMES = ['Customers Services', 'Customer Services', 'Customers'];
 const USERS_MANAGEMENT_TAB_NAMES = ['Users Management', 'User management', 'Users'];
@@ -125,20 +125,16 @@ export const openOwnerAccessSession = async ({ baseUrl } = {}) => {
   const origin = new URL(startupUrl).origin;
   const authTokens = await readProfileAuthTokens(settings);
 
-  await stopMatchingChromeProcesses({
-    ...settings,
-    startupUrl
-  });
-
-  const context = await chromium.launchPersistentContext(settings.userDataDir, {
+  const context = await chromium.launchPersistentContext(settings.browserUserDataDir, {
     executablePath: settings.chromePath,
     headless: false,
     args: [
-      `--profile-directory=${settings.profileDir}`,
+      `--profile-directory=${settings.browserProfileDir}`,
       '--no-first-run',
       '--no-default-browser-check'
     ]
   });
+  const browser = context.browser();
 
   await context.grantPermissions(['clipboard-read', 'clipboard-write'], { origin }).catch(() => {});
 
@@ -185,7 +181,7 @@ export const openOwnerAccessSession = async ({ baseUrl } = {}) => {
   await page.goto(startupUrl, { waitUntil: 'domcontentloaded' }).catch(() => {});
   return {
     mode: 'persistent',
-    browser: null,
+    browser,
     context,
     page,
     close: async () => {

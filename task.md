@@ -36,6 +36,7 @@
 - [x] Seed a working owners row into Supabase from the live CMP session
 - [x] Separate the Credentials tab into a company list plus detail/password flow
 - [x] Define the password reveal policy: hidden by default, explicit reveal only, no password payloads in worker logs
+- [x] Validate a real owners seed for `NOA EXPRESS LLC` with the dedicated Hermes browser profile
 - [x] Guard the dashboard against missing DOM nodes so clicks do not throw null textContent errors
 - [x] Add a living task file to keep the project backlog organized
 

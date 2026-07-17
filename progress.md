@@ -16,7 +16,7 @@
 - The dashboard now has `Cards` and `Credentials` tabs, with `Cards` owning the search flow and `Credentials` reserved for the email/password surface.
 - The `Credentials` tab now shows a company list on the left and company credentials on the right, with passwords hidden by default and a reveal toggle.
 - The credentials list is now sourced from `cmp_owner_access` only, so it shows only companies that actually have saved login rows.
-- Chrome profile 8 now starts directly on `/owners`, and the `Citifuel` bookmark remains the stable entry point for the owners view.
+- Chrome profile 8 remains the auth source for owners, while Hermes now launches its own dedicated browser profile so other Chrome windows stay untouched.
 - The dashboard layout has been reshaped so the center panel owns the active company detail, metrics, and the inventory table.
 - The `Cards` view has been flattened into a light split-pane layout inspired by the Indeed reference: compact header, search in the left rail, left company list, and a single active detail area.
 - Legacy stacked blocks in the `Cards` flow have been removed from the visible UI so the interface reads like a dashboard instead of a demo panel.
@@ -47,7 +47,7 @@
 - owner access capture now works against the live CMP owners screen for at least one seeded company
 - the credentials view is now a separate read path that can reveal passwords on demand
 - the credentials company list is intentionally separate from the cards list and is driven by owner access rows
-- the owners worker now targets the direct `/owners` route and avoids logging raw password payloads
+- the owners worker now uses a dedicated browser profile, targets the direct `/owners` route, and avoids logging raw password payloads
 - passwords remain masked unless the operator explicitly reveals them
 
 ## What Broke Recently
@@ -76,4 +76,4 @@
 - keep the dashboard polished as the main operator surface with the left list + center detail flow
 - keep the CMP scraping bot as a separate pending task
 - keep using the inventory checkpoint workflow instead of re-running from page 1
-- stabilize the browser attach flow so `owners` can reuse the authenticated CMP profile without launching temporary sessions
+- keep the dedicated Hermes browser profile stable so `owners` can reuse the authenticated CMP profile without touching other Chrome windows

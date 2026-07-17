@@ -8,8 +8,9 @@
 - Hermes API health, snapshot, company, and card search routes work against Supabase.
 - The dashboard loads at `/dashboard` and presents the Hermes console layout correctly.
 - Passwords remain hidden by default.
-- The `Citifuel` bookmark inside Chrome profile 8 lands directly on `/owners`.
-- The live profile 8 is now configured to open directly on `/owners`, so the bookmark and the startup page point to the same owners screen.
+- The `Citifuel` bookmark inside Chrome profile 8 still lands directly on `/owners`.
+- Hermes now uses a dedicated browser profile for scraping while reading auth tokens from the existing `Profile 8` session, so other Chrome windows stay untouched.
+- A live owner seed for `NOA EXPRESS LLC` succeeded with the dedicated Hermes browser profile.
 
 ## Important Data Sources
 

@@ -5,7 +5,10 @@ const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 export const DEFAULT_CHROME_PATH = 'C:/Program Files/Google/Chrome/Application/chrome.exe';
 export const DEFAULT_CHROME_USER_DATA_DIR =
   'C:/Users/AndresMendez/AppData/Local/Google/Chrome/User Data';
+export const DEFAULT_CHROME_BROWSER_USER_DATA_DIR =
+  'C:/Users/AndresMendez/AppData/Local/Google/Chrome/User Data Hermes';
 export const DEFAULT_CHROME_PROFILE_DIR = 'Profile 8';
+export const DEFAULT_CHROME_BROWSER_PROFILE_DIR = 'Default';
 export const DEFAULT_CHROME_DEBUG_PORT = 9222;
 
 const execPowerShell = async (script) => {
@@ -33,18 +36,26 @@ const quoteForPowerShellLike = (value) =>
     .replace(/\?/g, '`?');
 
 const probeDebugger = async (port) => {
-  try {
-    const response = await fetch(`http://127.0.0.1:${port}/json/version`);
-    return response.ok;
-  } catch {
-    return false;
+  for (const host of ['127.0.0.1', 'localhost']) {
+    try {
+      const response = await fetch(`http://${host}:${port}/json/version`);
+      if (response.ok) {
+        return true;
+      }
+    } catch {
+      // Try the next host.
+    }
   }
+
+  return false;
 };
 
 export const resolveChromeSettings = (env = process.env) => ({
   chromePath: String(env.HERMES_CHROME_PATH || DEFAULT_CHROME_PATH).trim(),
   userDataDir: String(env.HERMES_CHROME_USER_DATA_DIR || DEFAULT_CHROME_USER_DATA_DIR).trim(),
+  browserUserDataDir: String(env.HERMES_CHROME_BROWSER_USER_DATA_DIR || DEFAULT_CHROME_BROWSER_USER_DATA_DIR).trim(),
   profileDir: String(env.HERMES_CHROME_PROFILE_DIR || DEFAULT_CHROME_PROFILE_DIR).trim(),
+  browserProfileDir: String(env.HERMES_CHROME_BROWSER_PROFILE_DIR || DEFAULT_CHROME_BROWSER_PROFILE_DIR).trim(),
   debugPort: Number(env.HERMES_CHROME_DEBUG_PORT || DEFAULT_CHROME_DEBUG_PORT),
   startupUrl: String(env.HERMES_CMP_URL || 'about:blank').trim(),
   forceRestart: String(env.HERMES_CHROME_FORCE_RESTART || '').trim().toLowerCase() === 'true'
@@ -115,7 +126,7 @@ export const ensureChromeDebugger = async (settings = resolveChromeSettings()) =
     windowsHide: true
   }).unref();
 
-  for (let i = 0; i < 120; i += 1) {
+  for (let i = 0; i < 240; i += 1) {
     if (await probeDebugger(settings.debugPort)) {
       return { started: true, port: settings.debugPort };
     }
