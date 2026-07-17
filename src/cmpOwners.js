@@ -7,6 +7,7 @@ const CUSTOMERS_SERVICES_TAB_NAMES = ['Customers Services', 'Customer Services',
 const USERS_MANAGEMENT_TAB_NAMES = ['Users Management', 'User management', 'Users'];
 const OWNERS_TAB_NAMES = ['Owners', 'Owners & users'];
 const ACTION_MENU_TEXTS = ['...', 'More actions', 'Actions'];
+const OWNERS_PATH = '/owners';
 
 const firstVisible = async (locators) => {
   for (const locator of locators) {
@@ -18,6 +19,15 @@ const firstVisible = async (locators) => {
     }
   }
   return null;
+};
+
+export const resolveOwnersUrl = (baseUrl = '') => {
+  const rawUrl = String(baseUrl || '').trim();
+  const resolved = new URL(/^https?:\/\//i.test(rawUrl) ? rawUrl : 'http://localhost');
+  resolved.pathname = OWNERS_PATH;
+  resolved.search = '';
+  resolved.hash = '';
+  return resolved.toString();
 };
 
 const readProfileAuthTokens = async (settings) => {
@@ -111,7 +121,7 @@ const readProfileAuthTokens = async (settings) => {
 
 export const openOwnerAccessSession = async ({ baseUrl } = {}) => {
   const settings = resolveChromeSettings();
-  const startupUrl = String(baseUrl || settings.startupUrl || 'http://localhost').trim();
+  const startupUrl = resolveOwnersUrl(baseUrl || settings.startupUrl || 'http://localhost');
   const origin = new URL(startupUrl).origin;
   const authTokens = await readProfileAuthTokens(settings);
 
@@ -563,8 +573,9 @@ export const captureOwnerAccessForCompany = async (companyName, options = {}) =>
   if (!baseUrl) {
     throw new Error('HERMES_CMP_URL is required to open the CMP app');
   }
+  const ownersUrl = resolveOwnersUrl(baseUrl);
 
-  await activePage.goto(baseUrl, { waitUntil: 'domcontentloaded' });
+  await activePage.goto(ownersUrl, { waitUntil: 'domcontentloaded' });
   await activePage.waitForLoadState('networkidle').catch(() => {});
   await waitForOwnersShell(activePage);
 

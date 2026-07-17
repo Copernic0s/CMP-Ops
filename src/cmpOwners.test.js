@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { resolveChromeSettings } from './chrome.js';
 import { resolveSupabaseSettings } from './hermesStore.js';
+import { resolveOwnersUrl } from './cmpOwners.js';
 
 test('resolveChromeSettings picks up profile defaults', () => {
   const settings = resolveChromeSettings({});
@@ -17,4 +18,15 @@ test('resolveSupabaseSettings reads Hermes-prefixed env first', () => {
 
   assert.equal(settings.url, 'https://example.supabase.co');
   assert.equal(settings.serviceKey, 'secret');
+});
+
+test('resolveOwnersUrl always points to the owners route', () => {
+  assert.equal(
+    resolveOwnersUrl('https://cmp-front.production.united-fuel.com'),
+    'https://cmp-front.production.united-fuel.com/owners'
+  );
+  assert.equal(
+    resolveOwnersUrl('https://cmp-front.production.united-fuel.com/profile'),
+    'https://cmp-front.production.united-fuel.com/owners'
+  );
 });

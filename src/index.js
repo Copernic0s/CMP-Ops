@@ -63,7 +63,13 @@ const boot = async () => {
           },
           updated_at: now
         }]);
-        console.log(JSON.stringify(ownerResult, null, 2));
+        console.log(JSON.stringify({
+          companyName: ownerResult.companyName || companyRecord.companyName,
+          ownerName: ownerResult.ownerName || null,
+          ownerEmail: ownerResult.ownerEmail || null,
+          username: ownerResult.username || null,
+          rowCellCount: Array.isArray(ownerResult.rowCells) ? ownerResult.rowCells.length : 0
+        }, null, 2));
         console.log(`[Hermes] seeded owner access for ${companyRecord.companyName}`);
       } else {
         const syncResult = await runOwnersSync({

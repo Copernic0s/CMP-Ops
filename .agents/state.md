@@ -9,7 +9,7 @@
 - The dashboard loads at `/dashboard` and presents the Hermes console layout correctly.
 - Passwords remain hidden by default.
 - The `Citifuel` bookmark inside Chrome profile 8 lands directly on `/owners`.
-- The live profile 8 still opens on `/profile` after login, so the bookmark is the fastest stable route into the owners screen.
+- The live profile 8 is now configured to open directly on `/owners`, so the bookmark and the startup page point to the same owners screen.
 
 ## Important Data Sources
 

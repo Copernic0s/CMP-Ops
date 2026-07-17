@@ -16,11 +16,13 @@
 - The dashboard now has `Cards` and `Credentials` tabs, with `Cards` owning the search flow and `Credentials` reserved for the email/password surface.
 - The `Credentials` tab now shows a company list on the left and company credentials on the right, with passwords hidden by default and a reveal toggle.
 - The credentials list is now sourced from `cmp_owner_access` only, so it shows only companies that actually have saved login rows.
-- Chrome profile 8 starts on `/profile`, but the `Citifuel` bookmark in that profile lands directly on `/owners` and is the stable entry point for the owners view.
+- Chrome profile 8 now starts directly on `/owners`, and the `Citifuel` bookmark remains the stable entry point for the owners view.
 - The dashboard layout has been reshaped so the center panel owns the active company detail, metrics, and the inventory table.
 - The `Cards` view has been flattened into a light split-pane layout inspired by the Indeed reference: compact header, search in the left rail, left company list, and a single active detail area.
 - Legacy stacked blocks in the `Cards` flow have been removed from the visible UI so the interface reads like a dashboard instead of a demo panel.
 - The owners worker now tolerates missing CMP matches, can search through narrower terms, and can seed a single company record into Supabase from the live session.
+- The owners worker now opens the direct `/owners` route before scraping, which matches the new profile startup path.
+- Passwords stay hidden by default in the API/dashboard and are only revealed by explicit user action or an explicit `revealPassword=true` request.
 - The dashboard now guards its DOM writes so missing nodes do not surface `textContent` null errors during selection.
 - `AGENT.md` already exists and remains the repo-wide operating guide.
 - The live dashboard has been reviewed and is now readable, light, and operator-focused.
@@ -45,6 +47,8 @@
 - owner access capture now works against the live CMP owners screen for at least one seeded company
 - the credentials view is now a separate read path that can reveal passwords on demand
 - the credentials company list is intentionally separate from the cards list and is driven by owner access rows
+- the owners worker now targets the direct `/owners` route and avoids logging raw password payloads
+- passwords remain masked unless the operator explicitly reveals them
 
 ## What Broke Recently
 
@@ -71,6 +75,5 @@
 
 - keep the dashboard polished as the main operator surface with the left list + center detail flow
 - keep the CMP scraping bot as a separate pending task
-- decide the final password reveal behavior for the reserved password section
 - keep using the inventory checkpoint workflow instead of re-running from page 1
 - stabilize the browser attach flow so `owners` can reuse the authenticated CMP profile without launching temporary sessions

@@ -5,7 +5,6 @@
 - [ ] Finish the full `owners` sync against the live CMP app using only the `Client BY agent` sheet
 - [ ] Keep the dashboard polished as the main operator surface with `Cards` and `Credentials` tabs, a left company list, and a center detail view
 - [ ] Continue wiring live portfolio data into the left rail and right detail view
-- [ ] Define the final password reveal behavior for the credentials section
 - [ ] Keep the CMP scraping bot as a separate pending task
 - [ ] Keep the inventory checkpoint workflow available for future resyncs
 
@@ -36,6 +35,7 @@
 - [x] Refactor the dashboard into a light split-pane layout inspired by the Indeed reference
 - [x] Seed a working owners row into Supabase from the live CMP session
 - [x] Separate the Credentials tab into a company list plus detail/password flow
+- [x] Define the password reveal policy: hidden by default, explicit reveal only, no password payloads in worker logs
 - [x] Guard the dashboard against missing DOM nodes so clicks do not throw null textContent errors
 - [x] Add a living task file to keep the project backlog organized
 
