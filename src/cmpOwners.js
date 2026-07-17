@@ -1,7 +1,7 @@
 import { chromium } from 'playwright-core';
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { ensureChromeDebugger, resolveChromeSettings } from './chrome.js';
+import { resolveChromeSettings, stopMatchingChromeProcesses } from './chrome.js';
 
 const CUSTOMERS_SERVICES_TAB_NAMES = ['Customers Services', 'Customer Services', 'Customers'];
 const USERS_MANAGEMENT_TAB_NAMES = ['Users Management', 'User management', 'Users'];
@@ -125,13 +125,21 @@ export const openOwnerAccessSession = async ({ baseUrl } = {}) => {
   const origin = new URL(startupUrl).origin;
   const authTokens = await readProfileAuthTokens(settings);
 
-  await ensureChromeDebugger({
+  await stopMatchingChromeProcesses({
     ...settings,
     startupUrl
   });
 
-  const browser = await chromium.connectOverCDP(`http://127.0.0.1:${settings.debugPort}`);
-  const context = browser.contexts()[0] || await browser.newContext();
+  const context = await chromium.launchPersistentContext(settings.userDataDir, {
+    executablePath: settings.chromePath,
+    headless: false,
+    args: [
+      `--profile-directory=${settings.profileDir}`,
+      '--no-first-run',
+      '--no-default-browser-check'
+    ]
+  });
+
   await context.grantPermissions(['clipboard-read', 'clipboard-write'], { origin }).catch(() => {});
 
   if (authTokens.accessToken || authTokens.refreshToken) {
@@ -176,13 +184,13 @@ export const openOwnerAccessSession = async ({ baseUrl } = {}) => {
   const page = context.pages()[0] || await context.newPage();
   await page.goto(startupUrl, { waitUntil: 'domcontentloaded' }).catch(() => {});
   return {
-    mode: 'cdp',
-    browser,
+    mode: 'persistent',
+    browser: null,
     context,
     page,
     close: async () => {
-      if (browser && typeof browser.disconnect === 'function') {
-        browser.disconnect();
+      if (context && typeof context.close === 'function') {
+        await context.close().catch(() => {});
       }
     }
   };

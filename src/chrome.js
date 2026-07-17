@@ -26,6 +26,12 @@ const execPowerShell = async (script) => {
   });
 };
 
+const quoteForPowerShellLike = (value) =>
+  String(value || '')
+    .replace(/'/g, "''")
+    .replace(/\*/g, '`*')
+    .replace(/\?/g, '`?');
+
 const probeDebugger = async (port) => {
   try {
     const response = await fetch(`http://127.0.0.1:${port}/json/version`);
@@ -44,18 +50,32 @@ export const resolveChromeSettings = (env = process.env) => ({
   forceRestart: String(env.HERMES_CHROME_FORCE_RESTART || '').trim().toLowerCase() === 'true'
 });
 
-const stopMatchingChromeProcesses = async (settings) => {
+export const stopMatchingChromeProcesses = async (settings) => {
   if (!settings.forceRestart) {
     return;
   }
 
+  const userDataDir = quoteForPowerShellLike(settings.userDataDir);
+  const profileDir = quoteForPowerShellLike(settings.profileDir);
   const profileTitle = String(settings.forceRestartWindowTitle || 'Citifuel - Google Chrome').trim();
-  if (!profileTitle) {
-    return;
-  }
 
   const script = `
     $profileTitle = ${JSON.stringify(profileTitle)}
+    $userDataDir = '${userDataDir}'
+    $profileDir = '${profileDir}'
+    Get-Process chrome -ErrorAction SilentlyContinue |
+      Where-Object {
+        $commandLine = ''
+        try {
+          $commandLine = (Get-CimInstance Win32_Process -Filter ("ProcessId=" + $_.Id)).CommandLine
+        } catch {
+          $commandLine = ''
+        }
+        $commandLine -and $commandLine -like "*$userDataDir*" -and $commandLine -like "*$profileDir*"
+      } |
+      ForEach-Object {
+        Stop-Process -Id $_.Id -Force -ErrorAction SilentlyContinue
+      }
     Get-Process chrome -ErrorAction SilentlyContinue |
       Where-Object {
         $_.MainWindowTitle -and $_.MainWindowTitle -eq $profileTitle
@@ -95,7 +115,7 @@ export const ensureChromeDebugger = async (settings = resolveChromeSettings()) =
     windowsHide: true
   }).unref();
 
-  for (let i = 0; i < 60; i += 1) {
+  for (let i = 0; i < 120; i += 1) {
     if (await probeDebugger(settings.debugPort)) {
       return { started: true, port: settings.debugPort };
     }
