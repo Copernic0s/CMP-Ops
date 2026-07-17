@@ -16,6 +16,7 @@
 - The dashboard now has `Cards` and `Credentials` tabs, with `Cards` owning the search flow and `Credentials` reserved for the email/password surface.
 - The `Credentials` tab now shows a company list on the left and company credentials on the right, with passwords hidden by default and a reveal toggle.
 - The credentials list is now sourced from `cmp_owner_access` only, so it shows only companies that actually have saved login rows.
+- Chrome profile 8 starts on `/profile`, but the `Citifuel` bookmark in that profile lands directly on `/owners` and is the stable entry point for the owners view.
 - The dashboard layout has been reshaped so the center panel owns the active company detail, metrics, and the inventory table.
 - The `Cards` view has been flattened into a light split-pane layout inspired by the Indeed reference: compact header, search in the left rail, left company list, and a single active detail area.
 - Legacy stacked blocks in the `Cards` flow have been removed from the visible UI so the interface reads like a dashboard instead of a demo panel.
@@ -62,6 +63,7 @@
 - use the local Hermes API for read-only inspection of latest snapshots
 - keep the dashboard as the main operator entry point
 - keep the bot route discovery aligned to the live CMP menu (`Users Management` and `Company account cards`)
+- prefer the profile 8 `Citifuel` bookmark when testing the owners path because it jumps directly to `/owners`
 - the seeded owners row can be used now to verify the credentials surface before the larger sync is scheduled
 - keep the credentials list company-only and load the details panel on click
 
@@ -71,3 +73,4 @@
 - keep the CMP scraping bot as a separate pending task
 - decide the final password reveal behavior for the reserved password section
 - keep using the inventory checkpoint workflow instead of re-running from page 1
+- stabilize the browser attach flow so `owners` can reuse the authenticated CMP profile without launching temporary sessions

@@ -1,6 +1,5 @@
 import { chromium } from 'playwright-core';
 import fs from 'node:fs/promises';
-import os from 'node:os';
 import path from 'node:path';
 import { ensureChromeDebugger, resolveChromeSettings } from './chrome.js';
 
@@ -112,91 +111,71 @@ const readProfileAuthTokens = async (settings) => {
 
 export const openOwnerAccessSession = async ({ baseUrl } = {}) => {
   const settings = resolveChromeSettings();
-  const sessionDir = String(process.env.HERMES_CHROME_SESSION_DIR || path.join(os.tmpdir(), 'cmp-hermes-session')).trim();
   const startupUrl = String(baseUrl || settings.startupUrl || 'http://localhost').trim();
   const origin = new URL(startupUrl).origin;
   const authTokens = await readProfileAuthTokens(settings);
 
-  try {
-    const context = await chromium.launchPersistentContext(sessionDir, {
-      executablePath: settings.chromePath,
-      headless: false,
-      args: [
-        '--no-first-run',
-        '--no-default-browser-check'
-      ]
-    });
-    await context.grantPermissions(['clipboard-read', 'clipboard-write'], { origin }).catch(() => {});
-    if (authTokens.accessToken || authTokens.refreshToken) {
-      await context.addInitScript(({ accessToken, refreshToken, targetOrigin }) => {
-        try {
-          if (location.origin === targetOrigin) {
-            if (accessToken) {
-              localStorage.setItem('accessToken', accessToken);
-              sessionStorage.setItem('accessToken', accessToken);
-            }
-            if (refreshToken) {
-              localStorage.setItem('refreshToken', refreshToken);
-              sessionStorage.setItem('refreshToken', refreshToken);
-            }
+  await ensureChromeDebugger({
+    ...settings,
+    startupUrl
+  });
+
+  const browser = await chromium.connectOverCDP(`http://127.0.0.1:${settings.debugPort}`);
+  const context = browser.contexts()[0] || await browser.newContext();
+  await context.grantPermissions(['clipboard-read', 'clipboard-write'], { origin }).catch(() => {});
+
+  if (authTokens.accessToken || authTokens.refreshToken) {
+    await context.addInitScript(({ accessToken, refreshToken, targetOrigin }) => {
+      try {
+        if (location.origin === targetOrigin) {
+          if (accessToken) {
+            localStorage.setItem('accessToken', accessToken);
+            sessionStorage.setItem('accessToken', accessToken);
           }
-        } catch {
-          // Ignore storage injection errors and continue with the session.
-        }
-      }, {
-        accessToken: authTokens.accessToken,
-        refreshToken: authTokens.refreshToken,
-        targetOrigin: origin
-      });
-    }
-    if (authTokens.user) {
-      await context.addInitScript(({ user, targetOrigin }) => {
-        try {
-          if (location.origin === targetOrigin && user) {
-            const payload = JSON.stringify(user);
-            localStorage.setItem('user', payload);
-            sessionStorage.setItem('user', payload);
+          if (refreshToken) {
+            localStorage.setItem('refreshToken', refreshToken);
+            sessionStorage.setItem('refreshToken', refreshToken);
           }
-        } catch {
-          // Ignore storage injection errors and continue with the session.
         }
-      }, {
-        user: authTokens.user,
-        targetOrigin: origin
-      });
-    }
-    const page = context.pages()[0] || await context.newPage();
-    await page.goto(startupUrl, { waitUntil: 'domcontentloaded' }).catch(() => {});
-    return {
-      mode: 'persistent',
-      browser: context.browser(),
-      context,
-      page,
-      close: async () => {
-        await context.close().catch(() => {});
+      } catch {
+        // Ignore storage injection errors and continue with the session.
       }
-    };
-  } catch (error) {
-    await ensureChromeDebugger({
-      ...settings,
-      startupUrl
+    }, {
+      accessToken: authTokens.accessToken,
+      refreshToken: authTokens.refreshToken,
+      targetOrigin: origin
     });
-    const browser = await chromium.connectOverCDP(`http://127.0.0.1:${settings.debugPort}`);
-    const context = browser.contexts()[0] || await browser.newContext();
-    await context.grantPermissions(['clipboard-read', 'clipboard-write'], { origin }).catch(() => {});
-    const page = context.pages()[0] || await context.newPage();
-    return {
-      mode: 'cdp',
-      browser,
-      context,
-      page,
-      close: async () => {
-        if (browser && typeof browser.disconnect === 'function') {
-          browser.disconnect();
-        }
-      }
-    };
   }
+  if (authTokens.user) {
+    await context.addInitScript(({ user, targetOrigin }) => {
+      try {
+        if (location.origin === targetOrigin && user) {
+          const payload = JSON.stringify(user);
+          localStorage.setItem('user', payload);
+          sessionStorage.setItem('user', payload);
+        }
+      } catch {
+        // Ignore storage injection errors and continue with the session.
+      }
+    }, {
+      user: authTokens.user,
+      targetOrigin: origin
+    });
+  }
+
+  const page = context.pages()[0] || await context.newPage();
+  await page.goto(startupUrl, { waitUntil: 'domcontentloaded' }).catch(() => {});
+  return {
+    mode: 'cdp',
+    browser,
+    context,
+    page,
+    close: async () => {
+      if (browser && typeof browser.disconnect === 'function') {
+        browser.disconnect();
+      }
+    }
+  };
 };
 
 const findNavigationItem = async (page, labels) =>

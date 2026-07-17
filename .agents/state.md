@@ -8,6 +8,8 @@
 - Hermes API health, snapshot, company, and card search routes work against Supabase.
 - The dashboard loads at `/dashboard` and presents the Hermes console layout correctly.
 - Passwords remain hidden by default.
+- The `Citifuel` bookmark inside Chrome profile 8 lands directly on `/owners`.
+- The live profile 8 still opens on `/profile` after login, so the bookmark is the fastest stable route into the owners screen.
 
 ## Important Data Sources
 
@@ -20,6 +22,7 @@
 
 - Inventory crawling is still the most fragile workflow.
 - The `Next` button path can drift if the CMP UI changes.
+- Browser attach/restart behavior is still fragile if Chrome is already holding the authenticated profile open.
 - `xlsx` is pinned to a version that `npm audit` flags as high risk.
 
 ## Current Focus

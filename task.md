@@ -45,4 +45,5 @@
 - `progress.md` tracks state and known failure modes.
 - `task.md` tracks the active work that should survive context resets.
 - The live CMP owners path in the current profile is `Customers Services` -> `Users Management` -> `Owners`.
+- In the current `Profile 8`, the bookmark named `Citifuel` goes directly to `https://cmp-front.production.united-fuel.com/owners`.
 - The owners sync is being driven from the `Client BY agent` sheet so dashboard data stays aligned with the current portfolio.

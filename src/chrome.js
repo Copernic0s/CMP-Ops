@@ -41,10 +41,37 @@ export const resolveChromeSettings = (env = process.env) => ({
   profileDir: String(env.HERMES_CHROME_PROFILE_DIR || DEFAULT_CHROME_PROFILE_DIR).trim(),
   debugPort: Number(env.HERMES_CHROME_DEBUG_PORT || DEFAULT_CHROME_DEBUG_PORT),
   startupUrl: String(env.HERMES_CMP_URL || 'about:blank').trim(),
-  forceRestart: false
+  forceRestart: String(env.HERMES_CHROME_FORCE_RESTART || '').trim().toLowerCase() === 'true'
 });
 
+const stopMatchingChromeProcesses = async (settings) => {
+  if (!settings.forceRestart) {
+    return;
+  }
+
+  const profileTitle = String(settings.forceRestartWindowTitle || 'Citifuel - Google Chrome').trim();
+  if (!profileTitle) {
+    return;
+  }
+
+  const script = `
+    $profileTitle = ${JSON.stringify(profileTitle)}
+    Get-Process chrome -ErrorAction SilentlyContinue |
+      Where-Object {
+        $_.MainWindowTitle -and $_.MainWindowTitle -eq $profileTitle
+      } |
+      ForEach-Object {
+        Stop-Process -Id $_.Id -Force -ErrorAction SilentlyContinue
+      }
+  `;
+
+  await execPowerShell(script).catch(() => {});
+  await sleep(5000);
+};
+
 export const ensureChromeDebugger = async (settings = resolveChromeSettings()) => {
+  await stopMatchingChromeProcesses(settings);
+
   if (await probeDebugger(settings.debugPort)) {
     return { started: false, port: settings.debugPort };
   }
@@ -68,7 +95,7 @@ export const ensureChromeDebugger = async (settings = resolveChromeSettings()) =
     windowsHide: true
   }).unref();
 
-  for (let i = 0; i < 30; i += 1) {
+  for (let i = 0; i < 60; i += 1) {
     if (await probeDebugger(settings.debugPort)) {
       return { started: true, port: settings.debugPort };
     }
